@@ -14,6 +14,7 @@ library(dplyr)
 library(MASS)
 library(tidyverse)
 library(RColorBrewer)
+library(here)
 theme_set(theme_bw(base_size=6)) # theme setting for plots: black and white (bw) and font size (24)
 mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(14)
 
@@ -39,10 +40,13 @@ ddm10 <- as.data.table(read.csv("data/ddm_set10.csv")[,-1])
 ddm11 <- as.data.table(read.csv("data/ddm_set11.csv")[,-1])
 ddm12 <- as.data.table(read.csv("data/ddm_set12.csv")[,-1])
 ddm13 <- as.data.table(read.csv("data/ddm_set13.csv")[,-1])
-
-
 ddm <- as.data.frame(rbind(ddm1,ddm2,ddm3,ddm4,ddm5,ddm6,ddm7,ddm8,ddm9,ddm10,ddm11,ddm12,ddm13) )
+
 length(unique(ddm$strain)) # 98 in 1-13
+
+# Add in cumulative 
+#ddm <- ddm %>% group_by(rep, drytime, strain, inoc) %>% mutate(csum = cumsum(value)) %>% ungroup()
+#ggplot(ddm, aes(x=Time, y = csum, group = interaction(inoc, strain, rep, drytime))) + geom_line()
 
 
 #### 1_2_6_7: for just a subset of analysis
@@ -81,7 +85,6 @@ name_code <- "all_(1_13)_"
 # ggsave("output/all_t168.pdf")
 
 ###******** UNITS / DATA *************#######################################################################################################################################
-dim(ddm)
 ddm$value_J = ddm$value
 
 ###******* MODEL FITTING *************#######################################################################################################################################
@@ -90,8 +93,9 @@ ddm$value_J = ddm$value
 
 ## What are the strains?
 u <- as.character(unique(ddm$strain,stringsasFactors = FALSE)) # strains
-
-# What are the inocula? 
+## How many replicates? 
+r <- unique(ddm$rep) # replicates
+# What are the inoculums? 
 q <- unique(ddm$inoc)
 
 ## Run thru each experiment (columns in original data) for each strain
@@ -107,7 +111,7 @@ drying_times <- c(0,24,168)
 
 ## Run thru each strain/rep/drying time/ inoculum: fit a growth curve to each
 for(jj in 1:length(u)){ # for each strain
-  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1] # What are the replicate names for this strain?
+  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1]
   for(ii in 1:length(r)){ # for each replicate: fit to all the data, not just each replicate
     for(kk in c(1,3)){ #each of the three experimental conditions (0, 24, 168): most just 0 168 now
       for(ll in 1:length(q)){ #each of the inocula
@@ -232,10 +236,6 @@ for(jj in 1:length(u)){ # for each strain
 }
 
 
-
-
-
-
 #### Plot individual strain behaviour from model - odd ones highlighted
 for(jj in 1:length(u)){ # for each strain
 
@@ -250,10 +250,10 @@ for(jj in 1:length(u)){ # for each strain
                                   "Width&Shoulder","Peak Width&Shoulder"),
                        values = seq(1,8,1), drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
-    ggtitle(paste0(u[jj],", 201007 GRAPHS")) + 
+    ggtitle(paste0(u[jj]," plotted:",Sys.Date())) + 
     geom_point(data = pp, aes(x=shoulder_point_t, y =shoulder_point_v), col = "red") #+ 
   #geom_text(data = pp, aes(label = squared_dist, x = 10+as.numeric(inocl), y =as.numeric(inocl)*0.001, col = factor(inocl)),  size = 2)
-  ggsave(paste0("output/201007curves/a",name_code,"odd_highlighted_",u[jj],".pdf")) # if any to highlight it is shown here
+  ggsave(paste0("plots/",name_code,"odd_highlighted_",u[jj],".pdf")) # if any to highlight it is shown here
   
   
   #### If want to look at double curves... 
@@ -279,24 +279,12 @@ for(jj in 1:length(u)){ # for each strain
 write.csv(ddm,paste0("output/",name_code,"_all_ddm.csv"))
 
 
-# #ddm_prev$odd_type <- as.character(ddm_prev$odd_type)
-# ddm$odd_type <- as.character(ddm$odd_type)
-# ddm$diffs <- ifelse(ddm_prev$odd_type == ddm$odd_type,0,1)
-# ddm$diffs2 <- ifelse(ddm_prev_2nd$odd_type == ddm$odd_type,0,1)
-# # WHCIH DIFFERENT: changes shoulder code again to consider length of "2"s in diff and also can be near to the left
-# # most peak
-# w<-which(ddm$diffs == 1)
-# unique(ddm[w,"strain"])
-# ddm_prev %>% filter(strain == "11004") %>% summarise(unique(odd_type))
-# ddm %>% filter(strain == "11004") %>% summarise(unique(odd_type))
-# # next is ddm_prev_2nd
-
 #### Create cut data
 ddm_cut <- ddm %>% filter(shoulder_point_v > 0) %>% # only those with a shoulder
   group_by(strain, rep, drytime, inoc) %>% 
   mutate(cutpart = ifelse(Time < shoulder_point_t,1,0)) %>%
   filter(cutpart == 1)
 
-write.csv(ddm_cut, "ddm_cut.csv")
+write.csv(ddm_cut, "output/ddm_cut.csv")
 
 

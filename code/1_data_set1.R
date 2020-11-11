@@ -62,7 +62,8 @@ ddm <-reshape2::melt(dd, id.vars=c("Time","rep","exp"))
 #intervals = 0.25/60/60 # time interval between readings in seconds
 #ddm$value_J <-  ddm$value * intervals # convert to Joules (W = J/s => J = W*s)
 # Want to normalise - i.e. remove baseline value so that starts at 0 but tricky as some negative? not done here
-#ddm <- ddply(ddm,.(variable, rep,exp),transform,csum=cumsum(value_J))
+# ddm <- ddply(ddm,.(variable, rep,exp),transform,csum=cumsum(value_J))
+# ggplot(ddm, aes(x=Time, y = csum, group = interaction(variable, rep, exp))) + geom_line()
 
 #Data in mJ, convert to J
 ddm$value <- (ddm$value/1000)
@@ -71,10 +72,10 @@ ddm$value <- (ddm$value/1000)
 ## Raw data
 ggplot(subset(ddm,exp=="t0"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("Reference") + scale_y_continuous("Heat (J)")
-#ggsave("output/Raw_data_Reference_set1.tiff", width = 15, height = 10)
+ggsave("output/Raw_data_Reference_set1.tiff", width = 15, height = 10)
 ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("168hr drying") + scale_y_continuous("Heat (J)")
-#ggsave("output/Raw_data_168hr drying_set1.tiff", width = 15, height = 10)
+ggsave("output/Raw_data_168hr drying_set1.tiff", width = 15, height = 10)
 
 
 # Remove the contaminated data
@@ -94,10 +95,10 @@ ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=fact
 ## Plot tidy data and save 
 ggplot(subset(ddm,exp=="t0"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("Reference") + scale_y_continuous("Heat (J)")
-#ggsave("output/Raw_data_Reference_set1_tidy.tiff", width = 15, height = 10)
+ggsave("output/Raw_data_Reference_set1_tidy.tiff", width = 15, height = 10)
 ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("168hr drying") + scale_y_continuous("Heat (J)")
-#ggsave("output/Raw_data_168hr drying_set1_tidy.tiff", width = 15, height = 10)
+ggsave("output/Raw_data_168hr drying_set1_tidy.tiff", width = 15, height = 10)
 
 
 ## Cumulative heat output separate
