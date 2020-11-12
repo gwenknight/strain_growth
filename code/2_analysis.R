@@ -235,11 +235,13 @@ for(jj in 1:length(u)){ # for each strain
   }
 }
 
-
+ddm1 <- ddm %>% filter(drytime %in% c(0,168))
+param$rep <- as.numeric(as.character(param$rep))
+param$drytime <- as.numeric(as.character(param$drytime))
 #### Plot individual strain behaviour from model - odd ones highlighted
 for(jj in 1:length(u)){ # for each strain
 
-  dd <- ddm %>% filter(strain == u[jj])
+  dd <- ddm1 %>% filter(strain == u[jj])
   pp <- param %>% filter(strain_name == u[jj]) %>% filter(shoulder_point_v > 0)
   
   ggplot(dd, aes(x=Time, y = value_J)) + 
@@ -251,7 +253,7 @@ for(jj in 1:length(u)){ # for each strain
                        values = seq(1,8,1), drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
     ggtitle(paste0(u[jj]," plotted:",Sys.Date())) + 
-    geom_point(data = pp, aes(x=shoulder_point_t, y =shoulder_point_v), col = "red") #+ 
+   geom_point(data = pp, aes(x=shoulder_point_t, y =shoulder_point_v), col = "red") #+ 
   #geom_text(data = pp, aes(label = squared_dist, x = 10+as.numeric(inocl), y =as.numeric(inocl)*0.001, col = factor(inocl)),  size = 2)
   ggsave(paste0("plots/",name_code,"odd_highlighted_",u[jj],".pdf")) # if any to highlight it is shown here
   

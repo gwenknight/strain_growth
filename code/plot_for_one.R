@@ -1,8 +1,8 @@
 # EXPLORE BEHAVIOUR FOR ONE STRAIN 
 # DATASET
-strain <- "11050" 
-replicate <- 6.2
-condition <- 168
+strain <- "11280" 
+replicate <- 2.3
+condition <- 0
 inocl <- 3
 
 
