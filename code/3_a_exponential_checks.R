@@ -2,7 +2,7 @@
 ### From 3_next_steps.R have typical param set
 library(tidyverse)
 theme_set(theme_bw(base_size = 11))
-source("code/function_linear_model.R")
+source("20_function_linear_model.R")
 
 ##### READ IN DATA
 ### CHOOSE IN LINE WITH DATA CLEANING IN 2_analysis.R
@@ -12,12 +12,10 @@ name_code <- "all_(1_13)_"
 param_typical_notexp_gr <- read.csv(paste0("output/",name_code,"param_typical.csv"), stringsAsFactors = FALSE)[,-1]
 param_typical_notexp_gr <- as.data.frame(param_typical_notexp_gr)
 
-param <- read.csv("output/cut_all_param.csv")[,-1]
-
 ##### FOR THOSE WITH ONLY ONE ODD BEHAVIOUR CHECK EXPONENTIAL GROWTH
 ##### Check exp growth OK across inocula of the same strain at set drying times
 perc <- 0.2
-param_exp_gr_lab <- param %>%
+param_exp_gr_lab <- param_typical_notexp_gr %>%
   group_by(strain_name, rep, drytime) %>% 
   mutate(mean_peak_exp_gr = mean(exp_gr),
          mean_peak_exp_gr_p10 = mean_peak_exp_gr + perc*mean_peak_exp_gr,

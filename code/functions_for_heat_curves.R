@@ -265,7 +265,7 @@ fit_growth_curve <- function(strain, replicate, condition, inocl, data,
       # 
       
       ### Fit to value_J : could add cumulative plot in here but not done
-      datam <- reshape2::melt(data1[,c("Time","value")], id.vars = "Time")
+      datam <- reshape2::melt(data1[,c("Time","value_J")], id.vars = "Time")
       gg <- ggplot(datam, aes(x=Time,y=value)) + geom_point() #+ facet_wrap(~strain, scales = "free") 
       ## model fit:
       gc_df <- as.data.frame(cbind(gc_fit$fit.time, gc_fit$fit.data))

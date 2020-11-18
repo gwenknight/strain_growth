@@ -22,7 +22,8 @@ gcFitSpline <-
     if (length(time)!=length(data)) stop("gcFitSpline: length of input vectors differ!")
     
     # /// determine which values are not valid
-    bad.values <-  (is.na(time))|(time<0)|(is.na(data))|(data<0)|(!is.numeric(time))|(!is.numeric(data))
+    #bad.values <-  (is.na(time))|(time<0)|(is.na(data))|(data<0)|(!is.numeric(time))|(!is.numeric(data))
+    bad.values <-  (is.na(time))|(time<0)|(is.na(data))|(!is.numeric(time))|(!is.numeric(data)) # OK with negative data
     
     # /// remove bad values or stop program
     if (TRUE%in%bad.values)
@@ -93,7 +94,7 @@ gcFitSpline <-
     
     gcFitSpline        <- list(raw.time = time, raw.data = data, gcID = gcID, 
                                fit.time = y.spl$x, fit.data = y.spl$y, 
-                               parameters = list(A= max(y.spl$y), mu=mu.spl, lambda=lambda.spl, integral=integral), 
+                               parameters = list(A= max(y.spl$y), mu=mu.spl, lambda=lambda.spl, integral=integral, t.max = t.max), 
                                parametersLowess=list(A= max(y.low), mu=mu.low, lambda=lambda.low), 
                                spline = y.spl, reliable=NULL, fitFlag=TRUE, control = control)
     

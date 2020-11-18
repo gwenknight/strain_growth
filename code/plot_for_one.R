@@ -1,9 +1,9 @@
 # EXPLORE BEHAVIOUR FOR ONE STRAIN 
 # DATASET
-strain <- "11280" 
-replicate <- 2.3
-condition <- 0
-inocl <- 3
+strain <- "11050" 
+replicate <- 6.2 
+condition <- 168
+inocl <- 5
 
 
 #11050             6.2t168-inoc4/3
@@ -272,7 +272,7 @@ for(i in -40:5){
   
   #### How far is the predicted straight line from the data? 
   #if(length(pred_points_fit) > 28){leng = 28}else{leng = length(pred_points_fit)}
-  dist <- c(pred_points_fit - data1[peaks_index[1]:exp_start,"value_J"])
+  dist <- as.numeric(unlist(c(pred_points_fit - data1[peaks_index[1]:exp_start,"value_J"])))
   
   # if(sum(dist>0) > 0 && sum(dist<0)>0){ # need dist to cross multiple times
   #   fpsq <- find_peaks(as.numeric(unlist(dist)), m = 5) # Are there more than 1 peaks? 
