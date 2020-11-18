@@ -11,10 +11,12 @@ r <- unique(ddm$rep) # replicates
 q <- unique(ddm$inoc)
 
 drying_times <- c(0,24,168)
+ddm <- ddm %>% ungroup()
+parah <- c()
 
 ## Run thru each strain/rep/drying time/ inoculum: fit a growth curve to each
 for(jj in 1:length(u)){ # for each strain
-  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1]
+  r <- unlist(unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1])
   for(ii in 1:length(r)){ # for each replicate: fit to all the data, not just each replicate
     for(kk in c(1,3)){ #each of the three experimental conditions (0, 24, 168): most just 0 168 now
       for(ll in 1:length(q)){ #each of the inocula
@@ -200,10 +202,32 @@ for(jj in 1:length(u)){ # for each strain
             }
           }
           
-          
+          parah   <- rbind(parah,c(as.numeric(strain), replicate, condition, inocl, time_max_heat_flow, value_max_heat_flow, 
+                         s$mu.spline, s$lambda.spline,s$integral.spline, 
+                         odd_peak, odd_width, max_level, odd_shoulder, odd_double, shoulder_point, shoulder_point_v))
         }
       }
     }
   }
 }
+parah <- as.data.frame(parah)
+colnames(parah) <- c("strain", "rep","drytime","inocl",
+                     "t_m_h_flowc", "v_m_h_flow", "exp_gr","lag","auc",
+                     "odd_peaks","odd_width","width_peak","odd_shoulder","odd_double","shoulder_point_t","shoulder_point_v")
+parah$shoulder_point_t <- as.numeric(unlist(parah$shoulder_point_t))
+parah$shoulder_point_v <- as.numeric(unlist(parah$shoulder_point_v))
+
+dd <- ddm %>% filter(strain %in% u)
+pp <- parah %>% filter(strain %in% u) %>% filter(shoulder_point_v > 0)
+
+ggplot(dd, aes(x=Time, y = value_J, group = interaction(rep, strain, inoc, drytime))) + 
+  geom_line(aes(col = odd_type, linetype = factor(inoc))) + 
+  facet_wrap(drytime~strain + rep) + 
+  scale_color_manual("Odd_type", breaks = c("0","1","2","3","12","13","23","123"), 
+                     labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
+                                "Width&Shoulder","Peak Width&Shoulder"),
+                     values = seq(1,8,1), drop = FALSE) + 
+  scale_linetype_discrete("Inoc.") + 
+  ggtitle(paste0(u[jj]," plotted:",Sys.Date())) + 
+  geom_point(data = pp, aes(x=shoulder_point_t, y =shoulder_point_v), col = "red")
 
