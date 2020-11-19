@@ -2,7 +2,7 @@
 ### From 3_next_steps.R have typical param set
 library(tidyverse)
 theme_set(theme_bw(base_size = 11))
-source("20_function_linear_model.R")
+source("function_linear_model.R")
 
 ##### READ IN DATA
 ### CHOOSE IN LINE WITH DATA CLEANING IN 2_analysis.R

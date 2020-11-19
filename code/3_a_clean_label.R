@@ -284,6 +284,11 @@ ggplot(ddm %>% filter(strain %in% w$strain_name, rep %in% w$rep), aes(x = Time, 
   geom_line(aes(col = factor(drytime))) + facet_wrap(~strain)
 ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
 
+ggplot(ddm, aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytime))) + 
+  geom_line(aes(col = factor(drytime))) + facet_wrap(~strain)
+ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
+
+
 d2 <- ddm %>% filter(strain == "11277", rep == 1.1) %>% ungroup() %>% select(Time,value_J)
 s <- summary(gcFitSpline(d2$Time, d2$value_J))
 
