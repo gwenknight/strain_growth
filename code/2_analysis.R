@@ -5,7 +5,6 @@
 
 library(reshape2) # for data manipulation
 library(ggplot2) # for plotting
-library(gghighlight) # for highlighting lines
 library(plyr) # for data manipulation
 library(data.table)
 library(reshape2)
@@ -211,27 +210,29 @@ for(jj in 1:length(u)){ # for each strain
 }
 
 
-#### store shoulder_v n main dataframe
+#### CUT POINT into main dataframe
 ddm$shoulder_point_t <- 0
 ddm$shoulder_point_v <- 0
+ddm$shoulder_cut <- 0
 for(jj in 1:length(u)){ # for each strain
-  
+  print(u[jj])
   pp <- param %>% filter(strain_name == u[jj])
   ii <- which(ddm$strain == u[jj])
   
-  # Look at odd ones
-  w<-which(pp$shoulder_point_v > 0)
-  if(length(w > 0)){
-    for(ww in 1:length(w)){
-      w1 <- which(as.numeric(unlist(ddm[ii,"rep"])) == pp[w[ww],c("rep")])
-      w2 <- intersect(w1,which(unlist(ddm[ii,"drytime"]) == pp[w[ww],"drytime"]))
-      w3 <- intersect(w2,which(unlist(ddm[ii,'inoc']) == pp[w[ww],"inocl"]))
-      
-      oddv <- ii[w3] ## this 
-      
-      ddm[oddv,c("shoulder_point_t","shoulder_point_v")] <- pp[w[ww],c("shoulder_point_t","shoulder_point_v")] # label as odd across timeseries
-      
+  # Move over cut point or time to peak 
+  for(ww in 1:length(pp[,1])){ # for every row
+    w1 <- which(as.numeric(unlist(ddm[ii,"rep"])) == pp[ww,c("rep")])
+    w2 <- intersect(w1,which(unlist(ddm[ii,"drytime"]) == pp[ww,"drytime"]))
+    w3 <- intersect(w2,which(unlist(ddm[ii,'inoc']) == pp[ww,"inocl"]))
+    
+    oddv <- ii[w3] ## this 
+    
+    if(pp[ww,"shoulder_point_t"]>0){
+      ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("shoulder_point_t","shoulder_point_v")],1) # label as odd across timeseries
+    }else{
+      ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("t_m_h_flow","v_m_h_flow")],0) # add in time to peak as cut point
     }
+    
   }
 }
 
@@ -240,12 +241,12 @@ param$rep <- as.numeric(as.character(param$rep))
 param$drytime <- as.numeric(as.character(param$drytime))
 #### Plot individual strain behaviour from model - odd ones highlighted
 for(jj in 1:length(u)){ # for each strain
-
+  
   dd <- ddm1 %>% filter(strain == u[jj])
   pp <- param %>% filter(strain_name == u[jj]) %>% filter(shoulder_point_v > 0)
   
   ggplot(dd, aes(x=Time, y = value_J)) + 
-    geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc))) + 
+    geom_line(aes(group = inoc, col = factor(odd_type), linetype = factor(inoc))) + 
     facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
     scale_color_manual("Odd_type", breaks = c("0","01","02","03","012","013","023","0123"), 
                        labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
@@ -253,7 +254,7 @@ for(jj in 1:length(u)){ # for each strain
                        values = seq(1,8,1), drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
     ggtitle(paste0(u[jj]," plotted:",Sys.Date())) + 
-   geom_point(data = pp, aes(x=shoulder_point_t, y =shoulder_point_v), col = "red") #+ 
+    geom_point(aes(x=shoulder_point_t, y =shoulder_point_v), col = "red") #+ 
   #geom_text(data = pp, aes(label = squared_dist, x = 10+as.numeric(inocl), y =as.numeric(inocl)*0.001, col = factor(inocl)),  size = 2)
   ggsave(paste0("plots/",name_code,"odd_highlighted_",u[jj],".pdf")) # if any to highlight it is shown here
   
@@ -282,7 +283,11 @@ write.csv(ddm,paste0("output/",name_code,"_all_ddm.csv"))
 
 
 #### Create cut data
-ddm_cut <- ddm %>% filter(shoulder_point_v > 0) %>% # only those with a shoulder
+## Up to time to peak or shoulder
+## Remove first three hours 
+
+ddm_cut <- ddm %>% 
+  filter(Time > 3) %>% 
   group_by(strain, rep, drytime, inoc) %>% 
   mutate(cutpart = ifelse(Time < shoulder_point_t,1,0)) %>%
   filter(cutpart == 1)

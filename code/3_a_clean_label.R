@@ -201,9 +201,9 @@ param_clean <- param %>% filter(removed_rep == 0, removed_dataset == 0)
 # Look at the distribution of exponential growth for typical strains
 for(i in unique(param_clean$strain_name)){
   pa <- param_clean %>% filter(strain_name == i)
-  g1 <- ggplot(pa, aes(x=rep, y = exp_gr, group = rep)) + geom_boxplot() + ggtitle(paste0(i," all"))+ scale_x_continuous("Replicate") + scale_y_continuous("Exponential growth") 
+  g1 <- ggplot(pa, aes(x=rep, y = cut_exp, group = rep)) + geom_boxplot() + ggtitle(paste0(i," all"))+ scale_x_continuous("Replicate") + scale_y_continuous("Exponential growth") 
   
-  g2 <- ggplot(pa, aes(x=rep, y = exp_gr, group = interaction(rep,drytime))) + geom_boxplot(aes(col = factor(drytime))) + ggtitle(paste0("Split by drying time")) + 
+  g2 <- ggplot(pa, aes(x=rep, y = cut_exp, group = interaction(rep,drytime))) + geom_boxplot(aes(col = factor(drytime))) + ggtitle(paste0("Split by drying time")) + 
     scale_color_discrete("Dry time") + scale_x_continuous("Replicate") + scale_y_continuous("Exponential growth") + 
     theme(legend.position="bottom")
   
@@ -218,7 +218,7 @@ po <- param_clean %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), m
                             (twos == 1) ~ 2)) # tries pmax etc didn't work
 
 
-ggplot(po, aes(x=rep_st, y = exp_gr, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
+ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
@@ -232,20 +232,20 @@ ggplot(po, aes(x=rep_st, y = t_m_h_flow, group = interaction(rep_st, drytime, st
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/time_to_peak_across_replicates.pdf")
 
-ggplot(po, aes(x = exp_gr, y = t_m_h_flow,group = interaction(rep_st, drytime, strain_name))) + 
+ggplot(po, aes(x = cut_exp, y = t_m_h_flow,group = interaction(rep_st, drytime, strain_name))) + 
   geom_point(aes(col = factor(drytime))) + 
   geom_line() +
   facet_wrap(~odd_strains)
 
 
-ggplot(po, aes(x=rep_st, y = exp_gr, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
+ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/across_replicates_zoom.pdf")
 
-ggplot(po, aes(x=interaction(rep_st, strain_name), y = exp_gr, group = interaction(rep_st, drytime, strain_name))) + 
+ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
   geom_jitter(width = 0.1,aes(col = factor(drytime))) + 
   facet_wrap(~strain_name, scales = "free_x") + 
   scale_y_continuous("Exponential growth") + 
@@ -254,39 +254,36 @@ ggplot(po, aes(x=interaction(rep_st, strain_name), y = exp_gr, group = interacti
 ggsave("plots/exp_growth/across_replicates_zoom_strain_rep.pdf",width = 30, height = 30)
 
 
-ggplot(po, aes(x=rep_st, y = exp_gr, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
+ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
   scale_y_continuous("exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/across_replicates_all.pdf")
 
-ggplot(po, aes(x=rep_st, y = exp_gr, group = interaction(rep_st, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
+ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/group_replicates.pdf")
 
-ggplot(po %>% filter(drytime == 0), aes(x=inocl, y = exp_gr, group = interaction(rep,strain))) + 
+ggplot(po %>% filter(drytime == 0), aes(x=inocl, y = cut_exp, group = interaction(rep,strain))) + 
   geom_line(aes(col = strain))
 
-
+#### Normalised start
+ddm <-ddm %>% group_by(strain,rep, inoc, drytime) %>% dplyr::mutate(initial = first(value_J), value_J_norm = value_J - initial)
+ggplot(ddm, aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytime))) + 
+  geom_line(aes(col = factor(drytime))) + facet_wrap(~strain)
+ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
 
 
 
 
 #### Example 
 # 11272
-w <- po[which(po$exp_gr > 1),c("strain_name","rep")]
-ddm <-ddm %>% group_by(strain,rep, inoc, drytime) %>% dplyr::mutate(initial = first(value_J), value_J_norm = value_J - initial)
-ggplot(ddm %>% filter(strain %in% w$strain_name, rep %in% w$rep), aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytime))) + 
-  geom_line(aes(col = factor(drytime))) + facet_wrap(~strain)
-ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
+#w <- po[which(po$exp_gr > 1),c("strain_name","rep")]
 
-ggplot(ddm, aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytime))) + 
-  geom_line(aes(col = factor(drytime))) + facet_wrap(~strain)
-ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
 
 
 d2 <- ddm %>% filter(strain == "11277", rep == 1.1) %>% ungroup() %>% select(Time,value_J)

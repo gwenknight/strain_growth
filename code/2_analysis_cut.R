@@ -29,7 +29,7 @@ source("code/functions_for_heat_curves.R")
 
 ## where is the data? These are the outputs from 1_data_set#.R: standardised all variable names etc in here
 ddm <- read.csv("output/ddm_cut.csv")[,-1]
-length(unique(ddm$strain)) #42? in 1-13
+length(unique(ddm$strain)) #98
 
 name_code <- "cut"
 
@@ -83,60 +83,69 @@ for(jj in 1:length(u)){ # for each strain
         if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
           data1 <- data[w,] # %>% filter(Time > 5)# just get the data for this experiment (strain, time, value, drying time)
           
-          ## First time to peak 
-          peaks_index = find_peaks(data1$value_J, m = 3)
-          if(length(peaks_index) > 0){
-            w <- which(data1[peaks_index,"Time"] < 3)
-            if(length(w) > 0){peaks_index <- peaks_index[-w]}
-            if(length(peaks_index) > 0){ # if any later than 3 yrs
-              peaks_index = min(peaks_index)
-              timepeak = data1[peaks_index,"Time"]
-              valpeak = data1[peaks_index,"value_J"]
-            }
-            
-          }else{
-            valpeak = 0; timepeak = 0
-            if(dim(data1)[1]>4){
-              
-              
-              st <- c()
-              for(i in 2:(-2 + dim(data1)[1])){
-                data11 <- data1[max(1,i-4):i,]
-                data12 <- data1[(i+1):dim(data1)[1],]
-                lm.1 <- lm(data11$value_J ~ data11$Time)
-                lm.2 <- lm(data12$value_J ~ data12$Time)
-                
-                st <- rbind(st, c(i,c(max(data11$Time),lm.1$coefficients[2],lm.2$coefficients[2])))
+          if(data1$shoulder_cut == 1){
+            ## First time to peak 
+            peaks_index = find_peaks(data1$value_J, m = 3)
+            if(length(peaks_index) > 0){
+              w <- which(data1[peaks_index,"Time"] < 3)
+              if(length(w) > 0){peaks_index <- peaks_index[-w]}
+              if(length(peaks_index) > 0){ # if any later than 3 yrs
+                peaks_index = min(peaks_index)
+                timepeak = data1[peaks_index,"Time"]
+                valpeak = data1[peaks_index,"value_J"]
               }
               
-              st <- as.data.frame(st)
-              colnames(st) <- c("i","maxtime","f_ang","s_ang")
-              st$d <- 10000
-              st$d[1:(dim(st)[1]-1)] = abs(diff(st$s_ang))
-              st_upper <- st%>% filter(maxtime > 0.50*max(st$maxtime))
-              w1 <- which.min(st_upper$d)
-              w2 <- which.min(st_upper$d[-w1])
-              timepeak = min(st_upper[w1,"maxtime"], st_upper[-w1,"maxtime"][w2])
-              valpeak = data1[which(data1$Time == timepeak),"value_J"]
-            }else{valpeak = 0; timepeak = 0}
+            }else{
+              valpeak = 0; timepeak = 0
+              if(dim(data1)[1]>4){
+                
+                
+                st <- c()
+                for(i in 2:(-2 + dim(data1)[1])){
+                  data11 <- data1[max(1,i-4):i,]
+                  data12 <- data1[(i+1):dim(data1)[1],]
+                  lm.1 <- lm(data11$value_J ~ data11$Time)
+                  lm.2 <- lm(data12$value_J ~ data12$Time)
+                  
+                  st <- rbind(st, c(i,c(max(data11$Time),lm.1$coefficients[2],lm.2$coefficients[2])))
+                }
+                
+                st <- as.data.frame(st)
+                colnames(st) <- c("i","maxtime","f_ang","s_ang")
+                st$d <- 10000
+                st$d[1:(dim(st)[1]-1)] = abs(diff(st$s_ang))
+                st_upper <- st%>% filter(maxtime > 0.50*max(st$maxtime))
+                w1 <- which.min(st_upper$d)
+                w2 <- which.min(st_upper$d[-w1])
+                timepeak = min(st_upper[w1,"maxtime"], st_upper[-w1,"maxtime"][w2])
+                valpeak = data1[which(data1$Time == timepeak),"value_J"]
+              }else{valpeak = 0; timepeak = 0}
+            }
+            
+            ## Check not too low: if cut point already good enough
+            if(valpeak < 0.65*max(data1$value_J)){valpeak <- data1[dim(data1)[1],"value_J"]; timepeak =data1[dim(data1)[1],"Time"] }
+            
+            g1 <- ggplot(data1,aes(x=Time, y= value_J)) + geom_line() + 
+              geom_point(data = data1[which(round(data1$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
+              ggtitle(paste0(u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll]))
+            ggsave(paste0("plots/cut_curves/odd_highlighted_",u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll],".pdf")) 
+            
+            data1topeak = data1[which(data1$Time < as.numeric(timepeak)),c("Time","value_J")]
+            
+            ## Growth Curve # (see fig 3 of vv33i07.pdf)
+            ## This gives lag time and exponential growth rate cumulative
+            gc_fit <- gcFitSpline(data1topeak$Time, data1topeak$value_J)
+            # parameters from this fit
+            s <- summary(gc_fit)
+          }else{
+            ## Growth Curve # (see fig 3 of vv33i07.pdf)
+            timepeak = data1$shoulder_point_t[1]
+            valpeak = data1$shoulder_point_v[1]
+            ## This gives lag time and exponential growth rate cumulative
+            gc_fit <- gcFitSpline(data1$Time, data1$value_J)
+            # parameters from this fit
+            s <- summary(gc_fit)
           }
-          
-          ## Check not too low: if cut point already good enough
-          if(valpeak < 0.65*max(data1$value_J)){valpeak <- data1[dim(data1)[1],"value_J"]; timepeak =data1[dim(data1)[1],"Time"] }
-          
-          g1 <- ggplot(data1,aes(x=Time, y= value_J)) + geom_line() + 
-            geom_point(data = data1[which(round(data1$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
-            ggtitle(paste0(u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll]))
-          ggsave(paste0("plots/cut_curves/odd_highlighted_",u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll],".pdf")) 
-          
-          data1topeak = data1[which(data1$Time < as.numeric(timepeak)),c("Time","value_J")]
-          
-          ## Growth Curve # (see fig 3 of vv33i07.pdf)
-          ## This gives lag time and exponential growth rate cumulative
-          gc_fit <- gcFitSpline(data1topeak$Time, data1topeak$value_J)
-          # parameters from this fit
-          s <- summary(gc_fit)
-          
           ###
           keep <- rbind(keep, as.numeric(c(strain,replicate,condition,inocl, s$mu.spline, timepeak, valpeak)))
         }
@@ -155,11 +164,11 @@ colnames(keep) <- c("strain","rep","drytime","inocl","cut_exp","cut_timepeak","c
 # keep$cut_timepeak <- as.numeric(keep$cut_timepeak)
 # keep$cut_valpeak <- as.numeric(keep$cut_valpeak)
 
-write.csv(keep, "output/cut_curves.csv")
+write.csv(keep, "output/cut_curves_fit.csv")
 
 ##### Get parameter input
 param <- read.csv(paste0("output/","all_(1_13)_","all_model_fit_params.csv"))[,-1]
-ddm <- read.csv("output/all_(1_13)__all_ddm.csv")[,-1]
+#ddm <- read.csv("output/all_(1_13)__all_ddm.csv")[,-1]
 
 
 ######****** ODD behaviour ******#################
@@ -178,28 +187,7 @@ dk$odd_type <- as.character(dk$odd_type)
 pk$shoulder_point_t <- as.numeric(pk$shoulder_point_t)
 pk$shoulder_point_v <- as.numeric(pk$shoulder_point_v)
 
-#### Plot individual strain behaviour from model - odd ones highlighted
-for(jj in 1:length(u)){ # for each strain
-  
-  dd <- dk %>% filter(strain == u[jj])
-  pp <- pk %>% filter(strain_name == u[jj]) %>% filter(shoulder_point_v > 0)
-  
-  ggplot(dd, aes(x=Time, y = value_J)) + 
-    geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc))) + 
-    facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
-    scale_color_manual("Odd_type", breaks = c("0","1","2","3","12","13","23","123"),
-                      labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
-                                "Width&Shoulder","Peak Width&Shoulder"),
-                      values = seq(1,8,1), drop = FALSE) +
-    scale_linetype_discrete("Inoc.") + 
-    ggtitle(paste0(u[jj],", 201007 GRAPHS")) + 
-    geom_point(data = pp, aes(x=cut_timepeak, y =cut_valpeak), col = "red") #+ 
-  ggsave(paste0("plots/cut_curves_full/",name_code,"odd_highlighted_",u[jj],".pdf")) # if any to highlight it is shown here
-  
-}
-
 dk <- as.data.frame(dk)
-#ddm<- apply(ddm,2,as.character)
 write.csv(dk,"output/cut_all_ddm.csv")
 write.csv(pk,"output/cut_all_param.csv")
 

@@ -83,3 +83,6 @@ ggplot(mreps_split, aes(x=variable, y = value)) +
   scale_y_continuous("Number of strain and replicate combinations") + 
   scale_fill_discrete("Number of\ndatasets\nexcluded")
 ggsave("plots/exp_growth/exp_explore_n_datasets.pdf")
+
+
+
