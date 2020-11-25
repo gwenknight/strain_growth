@@ -154,8 +154,8 @@ typical_strains <- as.numeric(unlist(param %>% filter(odd_strains == 0) %>% summ
 write.csv(param, paste0("output/param_labelled.csv"))
 
 #### Move plots of odd strains into one folder
-dir.create(paste0("plots/odd"))
-dir.create(paste0("plots/typical"))
+dir.create(paste0("plots/odd"), showWarnings = FALSE) # warnings = FALSE otherwise get warning if folder already exists
+dir.create(paste0("plots/typical"), showWarnings = FALSE)
 
 
 name_code <- "all_(1_13)_"

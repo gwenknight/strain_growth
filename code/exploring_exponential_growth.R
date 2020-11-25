@@ -2,6 +2,7 @@
 library(tidyverse) # good library for filtering / summarising data
 library(matrixStats) # for row sd calculations
 library(Matrix) # for nnzero function
+library(patchwork) # for plot combinations
 theme_set(theme_bw(base_size=6)) # theme setting for plots: black and white (bw) and font size (24)
 
 ##### READ IN DATA
@@ -112,4 +113,47 @@ ggplot(pp, aes(x=thresh, y = perc)) +
   scale_fill_discrete("Number of\ndatasets\nexcluded") + 
   geom_hline(yintercept = 30, lty = "dashed") 
 #ggsave("plots/exp_growth/exp_explore_perc_datasets.pdf")
+
+##### Exponential agains height
+p1 <- ggplot(param_exp_gr_lab, aes(x=cut_exp, y = v_m_h_flow)) + 
+  geom_point(aes(col = factor(drytime))) + 
+  geom_smooth(method=lm) + 
+  geom_abline(intercept = 0.03, slope = 1) + 
+  scale_y_continuous("Peak heigh value") + 
+  scale_x_continuous("Exponential growth") + 
+  scale_color_discrete("Drytime") +
+  ggtitle("Linear model fit all to data vs. straight correlation (black)")
+
+p2 <- ggplot(param_exp_gr_lab, aes(x=cut_exp, y = v_m_h_flow)) + 
+  geom_point(aes(col = factor(drytime))) + 
+  geom_smooth() + 
+  geom_abline(intercept = 0.03, slope = 1) + 
+  scale_y_continuous("Peak heigh value") + 
+  scale_x_continuous("Exponential growth") + 
+  scale_color_discrete("Drytime") + 
+  ggtitle("Loess model fit to all data vs. straight correlation (black)")
+
+p3 <- ggplot(param_exp_gr_lab, aes(x=cut_exp, y = v_m_h_flow,col = factor(drytime))) + 
+  geom_point(aes()) + 
+  geom_smooth(fullrange=TRUE) + 
+  geom_abline(intercept = 0.03, slope = 1) + 
+  scale_y_continuous("Peak heigh value") + 
+  scale_x_continuous("Exponential growth") + 
+  scale_color_discrete("Drytime") + 
+  ggtitle("Loess model fit to data by drytime vs. straight correlation (black)")
+
+p4 <- ggplot(param_exp_gr_lab, aes(x=cut_exp, y = v_m_h_flow,col = factor(odd_strains))) + 
+  geom_point(aes()) + 
+  geom_smooth(fullrange=TRUE) + 
+  geom_abline(intercept = 0.03, slope = 1) + 
+  scale_y_continuous("Peak heigh value") + 
+  scale_x_continuous("Exponential growth") + 
+  scale_color_manual("Odd strain?", values = c("green","pink")) + 
+  ggtitle("Loess model fit to data by odd strain type vs. straight correlation (black)")
+
+(p1 | p2) / ( p3 | p4 )
+ggsave("plots/exp_growth/height_vs_exp.pdf")
+
+
+
 

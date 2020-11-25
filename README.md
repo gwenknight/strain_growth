@@ -22,3 +22,4 @@ output/cut_all_param.csv: summary parameters for each dataset
 3_a_clean_label.R cleans / labels datasets or replicates to be removed: outputs param_labelled.csv, and plots up to cut. Explores exponential growth
 # Use exploring_exponential_growth.R to find cutoff
 
+3_b_fit_linear.R checks exponential and fits linear

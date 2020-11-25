@@ -3,6 +3,7 @@
 library(tidyverse)
 theme_set(theme_bw(base_size = 11))
 source("function_linear_model.R")
+dir.create(paste0("plots/fit"), showWarnings = FALSE)
 
 ##### READ IN DATA
 ### CHOOSE IN LINE WITH DATA CLEANING IN 2_analysis.R
@@ -170,4 +171,10 @@ ggplot(reductions_fit$av_for_inoculum, aes(x = name, y = mean_inoc)) +
   scale_x_discrete("Inoculum") + 
   scale_y_continuous("Log reduction by inoculum")
 ggsave(paste0("plots/fit/log_reduction_by_inoc_fixed_scales.pdf"))
+
+# Store tables
+write.csv(reductions_fit$reductions,"output/fit_reductions_all_data.csv")
+write.csv(reductions_fit$av_for_inoculum, "output/fit_av_by_inoc.csv")
+write.csv(reductions_fit$av_for_strain, "output/fit_av_by_strain.csv")
+
 
