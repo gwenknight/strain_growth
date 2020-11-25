@@ -6,83 +6,110 @@ theme_set(theme_bw(base_size=6)) # theme setting for plots: black and white (bw)
 
 ##### READ IN DATA
 param <- read.csv("output/param_labelled.csv")
-param_clean <- param %>% filter(removed_rep == 0, removed_dataset == 0)
+param_clean <- param #%>% filter(removed_rep == 0, removed_dataset == 0) ## NO longer remove as cutting at peak time 
 
 ###################************** CHECK EXPONENTIAL GROWTH OK ##############
-param_clean$use_exp <- param_clean$exp_gr
-w <- which(!is.na(param_clean$cut_exp))
-param_clean[w,"use_exp"] <- param_clean[w,"cut_exp"]
-
+## Imipact of original vs cut exp
 pdf("plots/exp_growth/impact_of_cut.pdf")
 plot(param_clean[w,"exp_gr"],param_clean[w,"cut_exp"], xlab = "Pre cut exponential growth", ylab = "After cut exponential growth")
 lines(seq(0,0.04,0.001),seq(0,0.04,0.001))
+text(cut_exp ~exp_gr, labels=param_clean$strain,data=param_clean, cex=0.9, font=2)
 dev.off()
 
 
 ##### Check exp growth OK across inocula of the same strain at set drying times
 param_exp_gr_lab <- param_clean %>%
-  filter(odd_strains == 0) %>%
   group_by(strain_name, rep) %>%  # Mean over strain_name and rep - want to be same over dry times
-  mutate(mean_peak_exp_gr = mean(use_exp)) %>%
+  mutate(mean_peak_exp_gr = mean(cut_exp)) %>%
   ungroup() %>%
-  mutate(outside05 = ifelse((exp_gr > (mean_peak_exp_gr + 0.05*mean_peak_exp_gr)) | (exp_gr < (mean_peak_exp_gr - 0.05*mean_peak_exp_gr)), 1, 0),
-         outside10 = ifelse(exp_gr > (mean_peak_exp_gr + 0.1*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.1*mean_peak_exp_gr), 1, 0),
-         outside15 = ifelse(exp_gr > (mean_peak_exp_gr + 0.15*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.15*mean_peak_exp_gr), 1, 0),
-         outside20 = ifelse(exp_gr > (mean_peak_exp_gr + 0.2*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.2*mean_peak_exp_gr), 1, 0),
-         outside25 = ifelse(exp_gr > (mean_peak_exp_gr + 0.25*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.25*mean_peak_exp_gr), 1, 0),
-         outside30 = ifelse(exp_gr > (mean_peak_exp_gr + 0.3*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.3*mean_peak_exp_gr), 1, 0),
-         outside35 = ifelse(exp_gr > (mean_peak_exp_gr + 0.35*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.35*mean_peak_exp_gr), 1, 0),
-         outside40 = ifelse(exp_gr > (mean_peak_exp_gr + 0.4*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.4*mean_peak_exp_gr), 1, 0),
-         outside50 = ifelse(exp_gr > (mean_peak_exp_gr + 0.5*mean_peak_exp_gr) | exp_gr < (mean_peak_exp_gr - 0.5*mean_peak_exp_gr), 1, 0)) 
+  mutate(outside05 = ifelse((cut_exp > (mean_peak_exp_gr + 0.05*mean_peak_exp_gr)) | (cut_exp < (mean_peak_exp_gr - 0.05*mean_peak_exp_gr)), 1, 0),
+         outside10 = ifelse(cut_exp > (mean_peak_exp_gr + 0.1*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.1*mean_peak_exp_gr), 1, 0),
+         outside15 = ifelse(cut_exp > (mean_peak_exp_gr + 0.15*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.15*mean_peak_exp_gr), 1, 0),
+         outside20 = ifelse(cut_exp > (mean_peak_exp_gr + 0.2*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.2*mean_peak_exp_gr), 1, 0),
+         outside25 = ifelse(cut_exp > (mean_peak_exp_gr + 0.25*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.25*mean_peak_exp_gr), 1, 0),
+         outside30 = ifelse(cut_exp > (mean_peak_exp_gr + 0.3*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.3*mean_peak_exp_gr), 1, 0),
+         outside35 = ifelse(cut_exp > (mean_peak_exp_gr + 0.35*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.35*mean_peak_exp_gr), 1, 0),
+         outside40 = ifelse(cut_exp > (mean_peak_exp_gr + 0.4*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.4*mean_peak_exp_gr), 1, 0),
+         outside50 = ifelse(cut_exp > (mean_peak_exp_gr + 0.5*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.5*mean_peak_exp_gr), 1, 0)) %>% 
+  pivot_longer(col = c(outside05:outside50)) %>%
+  mutate(thresh = as.numeric(gsub( "outside", "", name))) %>% 
+  ungroup()
 
-total = cbind(c(seq(5,35,5),40,50), 100*colSums(param_exp_gr_lab[,c("outside05","outside10","outside15","outside20",
-                                                           "outside25","outside30","outside35","outside40","outside50")]) / dim(param)[1])
+param_exp_gr_lab[,c("strain_name","rep","cut_exp","mean_peak_exp_gr","name","value","thresh")] # to have a look 
 
-total <- as.data.frame(total)
-colnames(total) <- c("range","perc_outside")
+# Group together wtih percentages: sum over the respective columns (1 if outside so sum is total number)
+
+total_split <- param_exp_gr_lab %>% group_by(thresh, odd_strains) %>% summarise(total = sum(value), perc = 100*total/dim(param)[1])
+total <- param_exp_gr_lab %>% group_by(thresh) %>% summarise(total = sum(value), perc = 100*total/dim(param)[1])
+total$odd_strains <- 2
+tot <- full_join(total, total_split)
+
+# OLD pre pivot longer
+#total = cbind(c(seq(5,35,5),40,50), 100*colSums(param_exp_gr_lab[,c("outside05","outside10","outside15","outside20",
+#                                                           "outside25","outside30","outside35","outside40","outside50")]) / dim(param)[1])
 
 
-ggplot(total, aes(x= range, y = perc_outside)) + geom_point() + 
-  geom_line() + scale_x_continuous("Cutoff (within +/- x% of mean)") + 
-  scale_y_continuous("Percentage outside this range", lim = c(0,90))
+ggplot(tot, aes(x= thresh, y = perc, group = odd_strains)) + geom_point() + 
+  geom_line(aes(col = factor(odd_strains))) + scale_x_continuous("Cutoff (within +/- x% of mean)") + 
+  scale_y_continuous("Percentage of datasets outside this range", lim = c(0,100)) + 
+  geom_hline(yintercept = 30, lty = "dashed") +
+  scale_color_discrete("Odd strains?", breaks = c(0,1,2), labels = c("None","Only","All strains"))
 ggsave("plots/exp_growth/exp_explore_perc_outside.pdf")
 
-#### Group by strains and look at how many datasets out 
+#### Group by strains & reps and look at how many datasets out 
 pp <- param_exp_gr_lab %>% 
-  group_by(strain_name,rep) %>% 
-  dplyr::summarise(sum_outside_s_r05 = sum(outside05),
-                   sum_outside_s_r10 = sum(outside10),
-                   sum_outside_s_r15 = sum(outside15),
-                   sum_outside_s_r20 = sum(outside20),
-                   sum_outside_s_r25 = sum(outside25),
-                   sum_outside_s_r30 = sum(outside30),
-                   sum_outside_s_r35 = sum(outside35),
-                   sum_outside_s_r40 = sum(outside40),
-                   sum_outside_s_r50 = sum(outside50),.groups = "drop") # number of odd datasets in this strain and replicate
+  group_by(strain_name,rep, thresh) %>% 
+  dplyr::summarise(total_outside = sum(value), total = n()) %>%
+  ungroup() %>%
+  group_by(thresh, total_outside) %>% 
+  summarise(ns = n_distinct(strain_name, rep)) %>%
+  group_by(thresh) %>%
+  mutate(tot = sum(ns), 
+            perc = 100*ns / tot)
+  
+  
 
-reps_split <- matrix(0,7,9)
-reps_split[1+min(pp$sum_outside_s_r05):max(pp$sum_outside_s_r05),1] <- table(pp$sum_outside_s_r05)
-reps_split[1+min(pp$sum_outside_s_r10):max(pp$sum_outside_s_r10),2] <- table(pp$sum_outside_s_r10)
-reps_split[1+min(pp$sum_outside_s_r15):max(pp$sum_outside_s_r15),3] <- table(pp$sum_outside_s_r15)
-reps_split[1+min(pp$sum_outside_s_r20):max(pp$sum_outside_s_r20),4] <- table(pp$sum_outside_s_r20)
-reps_split[1+min(pp$sum_outside_s_r25):max(pp$sum_outside_s_r25),5] <- table(pp$sum_outside_s_r25)
-reps_split[1+min(pp$sum_outside_s_r30):max(pp$sum_outside_s_r30),6] <- table(pp$sum_outside_s_r30)
-reps_split[1+min(pp$sum_outside_s_r35):max(pp$sum_outside_s_r35),7] <- table(pp$sum_outside_s_r35)
-reps_split[1+min(pp$sum_outside_s_r40):max(pp$sum_outside_s_r40),8] <- table(pp$sum_outside_s_r40)
-reps_split[1+min(pp$sum_outside_s_r50):max(pp$sum_outside_s_r50),9] <- table(pp$sum_outside_s_r50)
-reps_split <- as.data.frame(reps_split)
-colnames(reps_split) <- c(seq(5,35,5),40,50)
-reps_split$no_datasets <- seq(0,6,1)
-mreps_split <- reshape2::melt(reps_split, id.vars = "no_datasets")
-
-## With a cutoff of 5 %, 
-
-ggplot(mreps_split, aes(x=variable, y = value)) + 
-  geom_bar(position = "stack",stat = "identity", aes(fill = factor(no_datasets))) + 
-  scale_x_discrete("Percentage of exponential growth excluded") + 
+ggplot(pp, aes(x=thresh, y = ns)) + 
+  geom_bar(position = "stack",stat = "identity", aes(fill = factor(total_outside))) + 
+  scale_x_continuous("Exclude if exponential growth is +/- \nthis percentage away from mean") + 
   scale_y_continuous("Number of strain and replicate combinations") + 
   scale_fill_discrete("Number of\ndatasets\nexcluded")
 ggsave("plots/exp_growth/exp_explore_n_datasets.pdf")
 
+ggplot(pp, aes(x=thresh, y = perc)) + 
+  geom_bar(position = "stack",stat = "identity", aes(fill = factor(total_outside))) + 
+  scale_x_continuous("Exclude if exponential growth is +/- \nthis percentage away from mean") + 
+  scale_y_continuous("% of strain and replicate combinations") + 
+  scale_fill_discrete("Number of\ndatasets\nexcluded") + 
+  geom_hline(yintercept = 30, lty = "dashed") 
+ggsave("plots/exp_growth/exp_explore_perc_datasets.pdf")
 
+
+
+##### strains only? not sure what the colours are here... 
+pp <- param_exp_gr_lab %>% 
+  group_by(strain_name, thresh) %>% 
+  dplyr::summarise(total_outside = sum(value), total = n()) %>%
+  ungroup() %>%
+  group_by(thresh, total_outside) %>% 
+  summarise(ns = n_distinct(strain_name)) %>%
+  group_by(thresh) %>%
+  mutate(tot = sum(ns), 
+         perc = 100*ns / tot)
+
+
+ggplot(pp, aes(x=thresh, y = ns)) + 
+  geom_bar(position = "stack",stat = "identity", aes(fill = factor(total_outside))) + 
+  scale_x_continuous("Exclude if exponential growth is +/- \nthis percentage away from mean") + 
+  scale_y_continuous("Number of strains") + 
+  scale_fill_discrete("Number of\ndatasets\nexcluded")
+#ggsave("plots/exp_growth/exp_explore_n_datasets.pdf")
+
+ggplot(pp, aes(x=thresh, y = perc)) + 
+  geom_bar(position = "stack",stat = "identity", aes(fill = factor(total_outside))) + 
+  scale_x_continuous("Exclude if exponential growth is +/- \nthis percentage away from mean") + 
+  scale_y_continuous("% of strain and replicate combinations") + 
+  scale_fill_discrete("Number of\ndatasets\nexcluded") + 
+  geom_hline(yintercept = 30, lty = "dashed") 
+#ggsave("plots/exp_growth/exp_explore_perc_datasets.pdf")
 

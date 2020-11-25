@@ -1,6 +1,7 @@
 #### Next steps
 ## Where do we go from the parameter set? 
 # (1) Get the parameter sets from 2_analysis.R then 2_analysis_cut.R
+
 # (2) Clean datasets: 
 ### How many odd datasets in a drytime for a single rep? 
 ##### If < 50% of datasets in a rep at a drytime are odd then remove just this dataset
@@ -8,6 +9,7 @@
 ### How many odd replicates are there for a strain?
 ##### If more than one replicate is odd then strain is odd
 ##### If only one then remove the replicate from the strain
+### > NOW just label for "removal" but as only use up to peak OK to keep in
 
 # (3) Check exponential growth 
 ### Should be same across replicate
@@ -49,7 +51,7 @@ drytimes <- unique(param$drytime)
 ### Code for linear model 
 source("code/function_linear_model.R")
 
-#################**************** (2) REMOVE ODD STRAINS *******************###############
+#################**************** (2) LABEL ODD STRAINS *******************###############
 
 ####### How many odd? 
 w_odd <- which(param$any_odd>=1) # any_odd is the sum of all odd indicators. 1= just one indicator, 3 = three indicators etc
@@ -66,8 +68,8 @@ dev.off()
 t <- table(param[w_odd,"strain_name"])
 odd_by_freq <- names(t[order(t)][(dim(t)-10):dim(t)]) # 10 with the greatest number of odd? 
 
-#### (1) REMOVE replicate if > 50% odd ( at least 3 replicates per strain)
-#### (2) REMOVE dataset if < 50% odd (usually at least 3 datasets per replicate and drying time)
+#### (1) LABEL replicate if > 50% odd ( at least 3 replicates per strain). For removal?
+#### (2) LABEL dataset if < 50% odd (usually at least 3 datasets per replicate and drying time). For removal?
 remove_reps <- c()
 remove_dataset <- c()
 
@@ -120,7 +122,7 @@ if(length(w1)>0){
   }
 }
 
-# REMOVE those reps that should be removed 
+# LABEL those reps that should be removed 
 param$removed_rep <- 0 # Note this
 param[wremove,"removed_rep"] <- 1
 
@@ -196,7 +198,7 @@ for(jj in 1:length(typical_strains)){ # for each strain
 
 
 #################**************** (3) CHECK EXPONENTIAL GROWTH*******************###############
-param_clean <- param %>% filter(removed_rep == 0, removed_dataset == 0)
+param_clean <- param #%>% filter(removed_rep == 0, removed_dataset == 0) ### NO LONGER NEED TO FILTER PAST PEAK AS CUTTING THERE
 
 # Look at the distribution of exponential growth for typical strains
 for(i in unique(param_clean$strain_name)){
@@ -217,13 +219,37 @@ po <- param_clean %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), m
                             (threes == 1)  ~ 3,
                             (twos == 1) ~ 2)) # tries pmax etc didn't work
 
+write.csv(po, "output/param_labelled_repst.csv")
 
+##### Diagnostic / exploring plots
 ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
-  scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
+  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/exp_growth_across_replicates.pdf")
+
+ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
+  facet_wrap(~odd_strains) + 
+  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
+  scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
+  theme(legend.position="bottom")
+ggsave("plots/exp_growth/exp_growth_across_inocl_bp.pdf")
+
+ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
+  facet_wrap(~odd_strains) + 
+  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
+  scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
+  theme(legend.position="bottom")
+ggsave("plots/exp_growth/exp_growth_across_inocl_bpgrp.pdf")
+
+ggplot(po, aes(x=inocl, y = cut_exp,aes(group = drytime))) + geom_point() +  
+  geom_smooth(method = "loess") +  #, #, formula = y ~ a * x + b,method.args = list(start = list(a = 0.1, b = 0.1))) + 
+  facet_wrap(drytime~odd_strains) + 
+  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
+  scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
+  theme(legend.position="bottom")
+ggsave("plots/exp_growth/exp_growth_across_inocl_pointsline.pdf")
 
 ggplot(po, aes(x=rep_st, y = t_m_h_flow, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
@@ -253,6 +279,26 @@ ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interact
   theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
 ggsave("plots/exp_growth/across_replicates_zoom_strain_rep.pdf",width = 30, height = 30)
 
+ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
+  geom_jitter(width = 0.1,aes(col = factor(inocl), pch = factor(drytime))) + 
+  facet_wrap(~strain_name, scales = "free_x") + 
+  scale_y_continuous("Exponential growth") + 
+  scale_x_discrete("Replicate/Strain") +   
+  scale_shape_discrete("Dry time") + 
+  scale_color_manual("Inoculum", values = c("red","black","turquoise")) + 
+  theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
+ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inocl.pdf",width = 30, height = 30)
+
+ggplot(po, aes(x=interaction(inocl, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
+  geom_jitter(width = 0.1,aes(col = factor(inocl), pch = factor(drytime))) + 
+  facet_wrap(~strain_name, scales = "free_x") + 
+  scale_y_continuous("Exponential growth") + 
+  scale_x_discrete("Inoculum/Strain") +   
+  scale_shape_discrete("Dry time") + 
+  scale_color_manual("Inoculum", values = c("red","black","turquoise")) + 
+  theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
+ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inoclgrp.pdf",width = 30, height = 30)
+
 
 ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
   facet_wrap(~odd_strains) + 
@@ -278,14 +324,8 @@ ggplot(ddm, aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytim
 ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
 
 
-
-
 #### Example 
 # 11272
-#w <- po[which(po$exp_gr > 1),c("strain_name","rep")]
-
-
-
 d2 <- ddm %>% filter(strain == "11277", rep == 1.1) %>% ungroup() %>% select(Time,value_J)
 s <- summary(gcFitSpline(d2$Time, d2$value_J))
 
