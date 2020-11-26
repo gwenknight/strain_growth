@@ -4,6 +4,7 @@ library(tidyverse)
 theme_set(theme_bw(base_size = 11))
 source("function_linear_model.R")
 dir.create(paste0("plots/fit"), showWarnings = FALSE)
+dir.create(paste0("plots/output_fit"), showWarnings = FALSE)
 
 ##### READ IN DATA
 ### CHOOSE IN LINE WITH DATA CLEANING IN 2_analysis.R
@@ -114,7 +115,7 @@ ggsave(paste0("plots/fit/time_to_peak_all_as_linear_model.pdf"), width = 16, hei
 w26<-c(which(param_expok$inocl == 2), which(param_expok$inocl == 6))
 if(length(w26) > 0){param_expok <- param_expok[-w26,]}
 
-reductions_fit <- fit_line_model(reps, strains, param_expok, "t_m_h_flow","Time to max heat flow")
+reductions_fit <- fit_line_model(reps, strains, param_expok, "t_m_h_flow","Time to max heat flow", plot = 1) ## plot = 1 will give the underling fit curves
 
 # in reductions. Meas column key: 
 # meas = 1 = log reduction 
@@ -172,9 +173,18 @@ ggplot(reductions_fit$av_for_inoculum, aes(x = name, y = mean_inoc)) +
   scale_y_continuous("Log reduction by inoculum")
 ggsave(paste0("plots/fit/log_reduction_by_inoc_fixed_scales.pdf"))
 
+## Fit
+ggplot(reductions_fit$fit, aes(x=strain, y = R2)) + 
+  geom_point() + 
+  ggtitle("R2 value for fit of linear model to inoculum size = a*time_to_peak + b")
+
+reductions_fit$fit %>% filter(R2 < 0.7)
+
 # Store tables
 write.csv(reductions_fit$reductions,"output/fit_reductions_all_data.csv")
 write.csv(reductions_fit$av_for_inoculum, "output/fit_av_by_inoc.csv")
 write.csv(reductions_fit$av_for_strain, "output/fit_av_by_strain.csv")
+
+
 
 
