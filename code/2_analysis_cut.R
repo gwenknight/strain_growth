@@ -59,6 +59,8 @@ drying_times <- c(0,24,168)
 keep <- c()
 
 ## Run thru each strain/rep/drying time/ inoculum: fit a growth curve to each
+### This asks if there is a shoulder? if yes then tidies up the cut point suggested by the prior analysis
+
 for(jj in 1:length(u)){ # for each strain
   r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1]
   for(ii in 1:length(r)){ # for each replicate: fit to all the data, not just each replicate
@@ -74,6 +76,7 @@ for(jj in 1:length(u)){ # for each strain
         data <- ddm_cut
         timepeak <- 0
         valpeak <- 0
+        print(c(strain, replicate, condition, inocl))
         
         ## which rows of the data are this strain and replicate?
         wi <- intersect(which(data$strain == strain),which(data$rep == replicate)) # if fit to each replicate
@@ -86,6 +89,8 @@ for(jj in 1:length(u)){ # for each strain
           if(data1$shoulder_cut == 1){
             ## First time to peak 
             peaks_index = find_peaks(data1$value_J, m = 3)
+            
+            ## If there is a peak then cut at this peak time
             if(length(peaks_index) > 0){
               w <- which(data1[peaks_index,"Time"] < 3)
               if(length(w) > 0){peaks_index <- peaks_index[-w]}
@@ -95,13 +100,11 @@ for(jj in 1:length(u)){ # for each strain
                 valpeak = data1[peaks_index,"value_J"]
               }
               
-            }else{
+            }else{ # if not peak
               valpeak = 0; timepeak = 0
               if(dim(data1)[1]>4){
-                
-                
                 st <- c()
-                for(i in 2:(-2 + dim(data1)[1])){
+                for(i in 2:(-2 + dim(data1)[1])){ # fit a linear model to the data in segments
                   data11 <- data1[max(1,i-4):i,]
                   data12 <- data1[(i+1):dim(data1)[1],]
                   lm.1 <- lm(data11$value_J ~ data11$Time)
@@ -111,10 +114,10 @@ for(jj in 1:length(u)){ # for each strain
                 }
                 
                 st <- as.data.frame(st)
-                colnames(st) <- c("i","maxtime","f_ang","s_ang")
+                colnames(st) <- c("i","maxtime","f_ang","s_ang") # first angle, second angle
                 st$d <- 10000
-                st$d[1:(dim(st)[1]-1)] = abs(diff(st$s_ang))
-                st_upper <- st%>% filter(maxtime > 0.50*max(st$maxtime))
+                st$d[1:(dim(st)[1]-1)] = abs(diff(st$s_ang)) # look at change in second angle: want to know when substantial change
+                st_upper <- st%>% filter(maxtime > 0.50*max(st$maxtime)) # but want to be past halfway
                 w1 <- which.min(st_upper$d)
                 w2 <- which.min(st_upper$d[-w1])
                 timepeak = min(st_upper[w1,"maxtime"], st_upper[-w1,"maxtime"][w2])
@@ -128,7 +131,7 @@ for(jj in 1:length(u)){ # for each strain
             g1 <- ggplot(data1,aes(x=Time, y= value_J)) + geom_line() + 
               geom_point(data = data1[which(round(data1$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
               ggtitle(paste0(u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll]))
-            ggsave(paste0("plots/cut_curves/odd_highlighted_",u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll],".pdf")) 
+            ggsave(paste0("plots/shoulder_curves/cutpoint_highlighted_",u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll],".pdf")) 
             
             data1topeak = data1[which(data1$Time < as.numeric(timepeak)),c("Time","value_J")]
             
@@ -181,14 +184,19 @@ pk <- left_join(param, keep, by = c("strain_name","rep","drytime","inocl"))
 
 dk <- left_join(ddm, keep[,c("strain","rep","drytime","inoc","cut_exp","cut_timepeak","cut_valpeak")], by = c("strain","rep","drytime","inoc"))
 
+# Chop at this new time point for those with shoulders
+dk_cut <- dk %>% 
+  group_by(strain, rep, drytime, inoc) %>% 
+  mutate(cutpart = ifelse(Time < cut_timepeak,1,0)) %>%
+  filter(cutpart == 1)
 
 
-dk$odd_type <- as.character(dk$odd_type)
+dk_cut$odd_type <- as.character(dk_cut$odd_type)
 pk$shoulder_point_t <- as.numeric(pk$shoulder_point_t)
 pk$shoulder_point_v <- as.numeric(pk$shoulder_point_v)
 
-dk <- as.data.frame(dk)
-write.csv(dk,"output/cut_all_ddm.csv")
+dk_cut <- as.data.frame(dk_cut)
+write.csv(dk_cut,"output/cut_all_ddm.csv")
 write.csv(pk,"output/cut_all_param.csv")
 
 

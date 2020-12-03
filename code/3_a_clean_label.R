@@ -169,12 +169,20 @@ for(i in typical_strains){
 ddm$odd_type <- as.character(ddm$odd_type)
 
 #### FILTERED plot - only the clean data
-for(jj in 1:length(typical_strains)){ # for each strain
+### ALL STRAINS 
+all_strains = unique(param$strain)
+
+ddm_orig <- read.csv(paste0("output/",name_code,"_all_ddm.csv"))[,-1] # Whole time course data
+
+cols = c(1,brewer.pal(n = 8, name = "Set1"))
+
+for(jj in 1:length(all_strains)){ # for each strain
   
   # Wnat to keep the unique combinatino of replicate and dataset that are clean
-  clean = param %>% filter(odd_strains == 0, removed_rep == 0, removed_dataset == 0, strain_name == typical_strains[jj])
+  clean = param %>% filter(removed_rep == 0, removed_dataset == 0, strain_name == all_strains[jj])
   
-  ddm_strain <- ddm %>% filter(strain == typical_strains[jj])
+  ddm_strain <- ddm %>% filter(strain == all_strains[jj])
+  ddm_orig_s <- ddm_orig %>% filter(strain == all_strains[jj])
   
   wc <- c()
   for(i in 1:length(clean[,1])){
@@ -183,22 +191,25 @@ for(jj in 1:length(typical_strains)){ # for each strain
   }
   
   dd <- ddm_strain[wc,]
+  ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
   
   ggplot(dd, aes(x=Time, y = value_J)) + 
-    geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc))) + 
+    geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc)), lwd = 1) + 
     facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
-    scale_color_manual("Odd_type", breaks = c("0","01","02","03","012","013","023","0123"), 
+    scale_color_manual("Odd_type", breaks = c("0","1","2","3","12","13","23","123"), 
                        labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
                                   "Width&Shoulder","Peak Width&Shoulder"),
-                       values = seq(1,8,1), drop = FALSE) + 
-    scale_linetype_discrete("Inoc.") #+ 
-  #geom_text(data = pp, aes(label = squared_dist, x = 10+as.numeric(inocl), y =as.numeric(inocl)*0.001, col = factor(inocl)),  size = 2)
-  ggsave(paste0("plots/typical/",name_code,"odd_highlighted_",typical_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here
+                       values = cols, drop = FALSE) + 
+    scale_linetype_discrete("Inoc.") + 
+    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
+    geom_point(aes(x=cut_timepeak, y = cut_valpeak), col = "red")
+    
+  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here
 }
 
 
 #################**************** (3) CHECK EXPONENTIAL GROWTH*******************###############
-param_clean <- param #%>% filter(removed_rep == 0, removed_dataset == 0) ### NO LONGER NEED TO FILTER PAST PEAK AS CUTTING THERE
+param_clean <- param #%>% filter(removed_rep == 0, removed_dataset == 0) ### COULD FILTER ON BEHAVIOUR PAST PEAK 
 
 # Look at the distribution of exponential growth for typical strains
 for(i in unique(param_clean$strain_name)){

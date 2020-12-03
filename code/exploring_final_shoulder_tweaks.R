@@ -52,58 +52,7 @@ for(jj in 1:length(u)){ # for each strain
           # parameters from this fit
           s <- summary(gc_fit)
           
-          ## What is the maximum heat flow and when?
-          wmax <- which.max( data1$value_J[-c(1:6)]) + 6 # take off funny initial behaviour < 2hr (take off in which.max and then add on 6 for position as taken 6 off)
-          time_max_heat_flow <- as.numeric(data1[wmax,"Time"])
-          value_max_heat_flow <- as.numeric(data1[wmax,"value_J"])
-          
-          ## ODD 
-          # (1) Is the peak broad? 
-          interval_peak <- time_max_heat_flow + c(-2.5, 2.5) # time interval around peak time
-          interval_value <- as.numeric(unlist(data1[c( which(round(data1$Time,4) == round(interval_peak[1],4)), which(round(data1$Time,4) == round(interval_peak[2],4))),"value_J"]))
-          
-          max_level <- 0;
-          max_level <- max(max_level,round(100*interval_value / value_max_heat_flow,0)) # asymmetric peak then take highest
-          
-          # ODD? 
-          if(max_level >= thresh_wide){odd_width <- 1}
-          
-          # (2) Are there multiple peaks? 
-          # GIVES WHERE ALL PEAKS ARE (greater or equal to (m) 5 points around them)
-          peaks_index = find_peaks(data1$value_J, m = 5)
-          if(length(peaks_index) > 1){
-            # REMOVE - early ones
-            we<-which(data1[peaks_index,"Time"]>3) 
-            # REMOVE - late ones
-            w<-intersect(we,which(data1[peaks_index,"Time"]< 0.90*max(data1$Time))) # remove > 95% of time
-            wl<-intersect(w,which(data1[peaks_index,"Time"] > 0.6*max(data1$Time))) # which in the odd 70-95% of the time range
-            if(length(wl)>0){ # if a late peak check it is big 
-              for(gg in 1:length(wl)){
-                if(data1[peaks_index[wl[gg]],"value_J"] < 0.45*max(data1[peaks_index,"value_J"])){ # if not bigger than 40% of peak
-                  w <-setdiff(w,wl[gg]) }}}   # then remove
-            peaks_index <- peaks_index[w] # Keep the ones not at the beginning / end
-            # Sort by height - want to compare to and keep the tallest (first now in peaks_index)
-            o <- order(data1[peaks_index,"value_J"], decreasing = "TRUE")
-            peaks_index <- peaks_index[o]
-          }
-          
-          # When are the peaks? 
-          time_peaks <- as.numeric(unlist(data1[peaks_index,"Time"]))
-          time_peaks_diff <- time_peaks - time_peaks[1] # how far apart are they?
-          # If multiple far apart then issue: double peaks
-          keep_time_far_apart <- which(abs(time_peaks_diff) > 5) 
-          
-          if(length(keep_time_far_apart) >= 1){odd_peak <- 1} # if multiple peaks
-          if(any(data1[peaks_index,"value_J"] < 0.001)){odd_peak <- 1} # or if peak low
-          
-          # If close and same height (90% of tallest) then odd (peak decline plateau decline OK)
-          close_peaks <- which(abs(time_peaks_diff) <= 5)
-          close_peaks_i <- 1
-          if(length(close_peaks)>1){
-            for(i in 2:length(close_peaks)){
-              ifelse(data1[peaks_index[close_peaks[i]],"value_J"]/data1[peaks_index[close_peaks[1]],"value_J"]> 0.9,
-                     close_peaks_i <- c(close_peaks_i,i),"")
-            }}
+
           
           if(length(close_peaks_i) > 1){odd_peak <- 1} # if multiple close time and height peaks
           

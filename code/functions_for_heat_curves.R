@@ -30,12 +30,12 @@
 # thresh_wide: width of the curve peak
 
 ### Bug fixing
-strain <- u[jj];
-replicate <- r[ii]
-condition <- drying_times[kk]
-inocl <- q[ll]
-data <- ddm
-fit_growth_curve(strain, replicate, condition, inocl, data)
+# strain <- u[jj];
+# replicate <- r[ii]
+# condition <- drying_times[kk]
+# inocl <- q[ll]
+# data <- ddm
+# fit_growth_curve(strain, replicate, condition, inocl, data)
 
 fit_growth_curve <- function(strain, replicate, condition, inocl, data, 
                              plot = 0, thresh_wide = 80){

@@ -253,9 +253,7 @@ for(jj in 1:length(u)){ # for each strain
                                   "Width&Shoulder","Peak Width&Shoulder"),
                        values = seq(1,8,1), drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
-    ggtitle(paste0(u[jj]," plotted:",Sys.Date())) + 
-    geom_point(aes(x=shoulder_point_t, y =shoulder_point_v), col = "red") #+ 
-  #geom_text(data = pp, aes(label = squared_dist, x = 10+as.numeric(inocl), y =as.numeric(inocl)*0.001, col = factor(inocl)),  size = 2)
+    ggtitle(paste0(u[jj]," plotted:",Sys.Date()))
   ggsave(paste0("plots/",name_code,"odd_highlighted_",u[jj],".pdf")) # if any to highlight it is shown here
   
   
