@@ -1,6 +1,6 @@
 #### Fit linear model 
 
-fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable name",plot = 0){
+fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable name",R_cut = 0.9, plot = 0){
   # reps = how many replicates
   # strains = strain names
   # param_here = the big set of parameters
@@ -29,7 +29,10 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
         ## USE variable to predict inoculum
         lm.1 <- lm(log10(dda$scalar) ~ as.numeric(unlist(dda[,var]))) # + dda$scalar2) ## Stuck with linear model as quadratic made no difference
         #lm.2 <- lm(dda$scalar ~ as.numeric(unlist(dda[,var])) + as.numeric(unlist(dda[,var]))^2)
+        
+        # Check if good fit 
         fit <- rbind(fit, c(reps[i],strains[j],round(summary(lm.1)$r.squared,2)))
+        if(round(summary(lm.1)$r.squared,2) < R_cut){print(paste0("Poor fit for ", reps[i],", ", strains[j],". R^2 = ",round(summary(lm.1)$r.squared,2))); break}
         
         xx <- c(min(as.numeric(unlist(dda[,var])) ) - 10, as.numeric(unlist(dda[,var])),
                 max(as.numeric(unlist(dda[,var])) ) + 10 ) # the variable

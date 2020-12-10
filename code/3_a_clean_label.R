@@ -33,15 +33,15 @@ param <- read.csv("output/cut_all_param.csv")[,-1]
 param$scalar <- 0
 
 w<- which(param$inocl == "2")
-param[w,"scalar"] = 10
-w<- which(param$inocl == "3")
 param[w,"scalar"] = 100
-w<- which(param$inocl == "4")
+w<- which(param$inocl == "3")
 param[w,"scalar"] = 1000
-w<- which(param$inocl == "5")
+w<- which(param$inocl == "4")
 param[w,"scalar"] = 10000
-w<- which(param$inocl == "6")
+w<- which(param$inocl == "5")
 param[w,"scalar"] = 100000
+w<- which(param$inocl == "6")
+param[w,"scalar"] = 1000000
 
 param$scalar2 <- (param$scalar)^2
 strains <- unique(param$strain_name)

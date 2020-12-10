@@ -1,6 +1,7 @@
 ### FIT LINEAR MODEL to predict inoculum 
 
 library(tidyverse)
+library(patchwork)
 theme_set(theme_bw(base_size = 11))
 source("function_linear_model.R")
 dir.create(paste0("plots/fit"), showWarnings = FALSE)
@@ -15,7 +16,7 @@ param <- read.csv("output/param_labelled_repst.csv", stringsAsFactors = FALSE)[,
 
 
 ##### Check exp growth OK across inocula of the same strain at set drying times
-perc <- 0.3
+perc <- 0.32
 param_exp_gr_lab <- param %>%
   group_by(strain_name, rep) %>% 
   mutate(mean_peak_exp_gr = mean(cut_exp),
@@ -32,7 +33,7 @@ param_expok <- param_exp_gr_lab %>%
 
 length(unique(param_expok$strain_name)) 
 length(unique(param$strain_name)) 
-# Only 13 strains removed 
+# Only 9 strains removed: we can't use these are their exponential growth is too variable
 
 strains_typical = unique(param_expok$strain_name) # PERFECT strains
 
@@ -50,29 +51,29 @@ ggplot(param_exp_gr_lab, aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = fa
   ggtitle(paste0("All strains. Red = outside of limits (",100*perc,"%)"))
 ggsave(paste0("plots/exp_growth/perc_from_mean_exponential_growth.pdf"),width = 20, height = 20)
 
-ggplot(param_exp_gr_lab %>% filter(odd_strains == 0), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
-  scale_color_manual("In the limits?", values = c("black","red")) +
-  scale_shape_discrete("Drytime") + 
-  scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
-  scale_y_continuous("Exponential growth") + 
-  facet_wrap(strain_name ~ rep, ncol = 30) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(typ))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(typ))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(typ)),lty = "dashed") + 
-  ggtitle(paste0("Typical strains. Red = outside of limits (",100*perc,"%)"))
-ggsave(paste0("plots/exp_growth/perc_from_mean_exponential_growth_typical.pdf"),width = 20, height = 20)
-
-ggplot(param_exp_gr_lab %>% filter(odd_strains == 1), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
-  scale_color_manual("In the limits?", values = c("black","red")) +
-  scale_shape_discrete("Drytime") + 
-  scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
-  scale_y_continuous("Exponential growth") + 
-  facet_wrap(strain_name ~ rep, ncol = 30) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(typ))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(typ))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(typ)),lty = "dashed") + 
-  ggtitle(paste0("Odd strains. Red = outside of limits (",100*perc,"%)"))
-ggsave(paste0("plots/exp_growth/perc_from_mean_exponential_growth_oddstrains.pdf"),width = 20, height = 20)
+# ggplot(param_exp_gr_lab %>% filter(odd_strains == 0), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
+#   scale_color_manual("In the limits?", values = c("black","red")) +
+#   scale_shape_discrete("Drytime") + 
+#   scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
+#   scale_y_continuous("Exponential growth") + 
+#   facet_wrap(strain_name ~ rep, ncol = 30) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(typ))) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(typ))) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(typ)),lty = "dashed") + 
+#   ggtitle(paste0("Typical strains. Red = outside of limits (",100*perc,"%)"))
+# ggsave(paste0("plots/exp_growth/perc_from_mean_exponential_growth_typical.pdf"),width = 20, height = 20)
+# 
+# ggplot(param_exp_gr_lab %>% filter(odd_strains == 1), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
+#   scale_color_manual("In the limits?", values = c("black","red")) +
+#   scale_shape_discrete("Drytime") + 
+#   scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
+#   scale_y_continuous("Exponential growth") + 
+#   facet_wrap(strain_name ~ rep, ncol = 30) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(typ))) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(typ))) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(typ)),lty = "dashed") + 
+#   ggtitle(paste0("Odd strains. Red = outside of limits (",100*perc,"%)"))
+# ggsave(paste0("plots/exp_growth/perc_from_mean_exponential_growth_oddstrains.pdf"),width = 20, height = 20)
 
 
 ######****************************######################################################################
@@ -83,12 +84,14 @@ ggsave(paste0("plots/exp_growth/perc_from_mean_exponential_growth_oddstrains.pdf
 
 # Parameters where the exponential growth is within the agreed range for linear model 
 param_expok <- param_exp_gr_lab %>%
-  filter(sum_outside_s_r < 2) # some have only one in the strain and replicate
-
+  filter(sum_outside_s_r < 2) %>% # some have only one in the strain and replicate
+  filter(outside == 0) # those remaining datasets that are outside of the range are taken out. But will only be 1 a rep
+# removes 80 datasets: 6%
+  
 
 ######****** Predicting **********######################################################################
 ggplot(param_expok, aes(y=inocl,x = t_m_h_flow, group = strain_name, colour=factor(rep_st))) + 
-  geom_point(size = 3) + facet_wrap(~strain_name) + 
+  geom_point(size = 2) + facet_wrap(~strain_name) + 
   scale_x_continuous("Time to peak") + scale_y_continuous("Inoculum size (10^x)") + 
   scale_color_discrete("Experiment") 
 ggsave(paste0("plots/fit/time_to_peak_all.pdf"), width = 16, height =10 )
@@ -115,13 +118,27 @@ ggsave(paste0("plots/fit/time_to_peak_all_as_linear_model.pdf"), width = 16, hei
 w26<-c(which(param_expok$inocl == 2), which(param_expok$inocl == 6))
 if(length(w26) > 0){param_expok <- param_expok[-w26,]}
 
-reductions_fit <- fit_line_model(reps, strains, param_expok, "t_m_h_flow","Time to max heat flow", plot = 1) ## plot = 1 will give the underling fit curves
+reductions_fit <- fit_line_model(reps, strains, param_expok, "t_m_h_flow","Time to max heat flow", R_cut = 0.9, plot = 1) ## plot = 1 will give the underling fit curves
+
+### Check fits
+ggplot(reductions_fit$fit, aes(x=strain, y = R2)) + 
+  geom_point() + 
+  ggtitle("R2 value for fit of linear model to inoculum size = a*time_to_peak + b")
+
+ggplot(reductions_fit$fit, aes(x=R2)) + geom_histogram(binwidth = 0.02) + 
+  geom_vline(xintercept = 0.9)
+
+fitted_strains <- reductions_fit$fit %>% filter(R2 > 0.9) %>%
+  select(strain) %>% unlist() %>% as.character() # but not all the replicates for these strains
+
 
 # in reductions. Meas column key: 
 # meas = 1 = log reduction 
 # meas = 2 = percentage reduction 
 # meas = 3 = inoculum
 # meas = 4 = predicted inoculum
+
+# reductions_fit$reductions only has good fit strains and replicates
 
 ggplot(subset(reductions_fit$reductions, meas == 1), aes(x=ticker, y = mean, fill = factor(ticker))) + 
   geom_bar(stat = "identity", position=position_dodge(2)) + 
@@ -133,7 +150,7 @@ ggsave(paste0("plots/fit/log_reductions_byrep.pdf"), width = 15, height = 10)
 
 #### ISSUE IS WHAT IS THE ERRORBAR? mean of sd or sd of mean? 
 ## Similar to reductions_fit$av_for_strain except for sd calc
-reductions_fit$reductions %>% subset(meas == 1) %>% group_by(strain_name, dry) %>% 
+reductions_fit$reductions %>% filter(meas == 1) %>% group_by(strain_name, dry) %>% 
   summarise(mean_over_rep = mean(mean), sd_over_rep = sd(mean)) %>%
   ggplot(aes(x=strain_name, y = mean_over_rep, fill = strain_name)) + 
   geom_bar(stat = "identity", position=position_dodge(2)) + 
@@ -143,7 +160,7 @@ reductions_fit$reductions %>% subset(meas == 1) %>% group_by(strain_name, dry) %
   geom_errorbar(aes(ymax = mean_over_rep + sd_over_rep, ymin = mean_over_rep - sd_over_rep),position = "dodge")
 ggsave(paste0("plots/fit/log_reductions_mean_by_drytime.pdf"), width = 20, height = 10)
 
-ggplot(subset(reductions, meas == 2), aes(x=ticker, y = mean, fill = factor(ticker))) + 
+ggplot(subset(reductions_fit$reductions, meas == 2), aes(x=ticker, y = mean, fill = factor(ticker))) + 
   geom_bar(stat = "identity", position=position_dodge(2)) + 
   facet_grid(dry~strain_name) + scale_y_continuous("Percentage reduction") + 
   scale_x_discrete("Replicate") + 
@@ -173,12 +190,37 @@ ggplot(reductions_fit$av_for_inoculum, aes(x = name, y = mean_inoc)) +
   scale_y_continuous("Log reduction by inoculum")
 ggsave(paste0("plots/fit/log_reduction_by_inoc_fixed_scales.pdf"))
 
-## Fit
-ggplot(reductions_fit$fit, aes(x=strain, y = R2)) + 
-  geom_point() + 
-  ggtitle("R2 value for fit of linear model to inoculum size = a*time_to_peak + b")
 
-reductions_fit$fit %>% filter(R2 < 0.7)
+# Average over all strains by inoculum
+av_all <- reductions_fit$reductions %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name) %>%
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), se = sd(value, na.rm = TRUE)/n())
+
+ggplot(av_all, aes(x=name, y = mean)) + geom_bar(stat = "identity") + 
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd))
+
+## Success? 
+succ <- read.csv("data/success_yn.csv")
+succ$strain_name <- as.character(succ$strain_name)
+
+succ_go <- left_join(reductions_fit$reductions,succ, by = "strain_name")
+
+av_all_bys <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name, success) %>%
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), se = sd(value, na.rm = TRUE)/n())
+
+ggplot(av_all_bys, aes(x=name, y = mean)) + geom_bar(stat = "identity", aes(fill = success)) + 
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd)) + 
+  facet_wrap(~success)
+
+ggplot(av_all_bys, aes(x=name, y = mean,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(width=0.5),aes(ymin = mean - sd, ymax = mean + sd)) 
+
+
 
 # Store tables
 write.csv(reductions_fit$reductions,"output/fit_reductions_all_data.csv")
