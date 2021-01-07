@@ -227,10 +227,16 @@ for(jj in 1:length(u)){ # for each strain
     
     oddv <- ii[w3] ## this 
     
+    ### If have a shoulder then add in new point up to this cut 
     if(pp[ww,"shoulder_point_t"]>0){
       ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("shoulder_point_t","shoulder_point_v")],1) # label as odd across timeseries
     }else{
       ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("t_m_h_flow","v_m_h_flow")],0) # add in time to peak as cut point
+    }
+    
+    # If have any odd behaviour then do the extra cut fit to check no earlier peaks (e.g. 11214 11.2)
+    if(pp[ww,"any_odd"] > 0){
+      ddm[oddv,c("shoulder_cut")] <- 1 
     }
     
   }

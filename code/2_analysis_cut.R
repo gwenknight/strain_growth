@@ -28,7 +28,7 @@ source("code/grofit_functions.R") # have copied those we use into this R script
 source("code/functions_for_heat_curves.R")
 
 ## where is the data? These are the outputs from 1_data_set#.R: standardised all variable names etc in here
-ddm <- read.csv("output/ddm_cut.csv")[,-1]
+ddm <- read_csv("output/ddm_cut.csv")[,-1]
 length(unique(ddm$strain)) #98
 
 name_code <- "cut"
@@ -62,7 +62,7 @@ keep <- c()
 ### This asks if there is a shoulder? if yes then tidies up the cut point suggested by the prior analysis
 
 for(jj in 1:length(u)){ # for each strain
-  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1]
+  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1] %>% unlist() %>% as.character()
   for(ii in 1:length(r)){ # for each replicate: fit to all the data, not just each replicate
     for(kk in c(1,3)){ #each of the three experimental conditions (0, 24, 168): most just 0 168 now
       for(ll in 1:length(q)){ #each of the inoculums
@@ -73,7 +73,7 @@ for(jj in 1:length(u)){ # for each strain
         replicate <- r[ii]
         condition <- drying_times[kk]
         inocl <- q[ll]
-        data <- ddm_cut
+        data <- ddm # not ddm_cut?
         timepeak <- 0
         valpeak <- 0
         print(c(strain, replicate, condition, inocl))
@@ -86,7 +86,7 @@ for(jj in 1:length(u)){ # for each strain
         if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
           data1 <- data[w,] # %>% filter(Time > 5)# just get the data for this experiment (strain, time, value, drying time)
           
-          if(data1$shoulder_cut == 1){
+          if(data1$shoulder_cut[1] == 1){
             ## First time to peak 
             peaks_index = find_peaks(data1$value_J, m = 3)
             

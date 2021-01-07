@@ -192,6 +192,7 @@ for(jj in 1:length(all_strains)){ # for each strain
   }
   
   dd <- ddm_strain[wc,]
+  dd$odd_type <- as.character(dd$odd_type)
   ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
   
   ggplot(dd, aes(x=Time, y = value_J)) + 
@@ -202,7 +203,7 @@ for(jj in 1:length(all_strains)){ # for each strain
                                   "Width&Shoulder","Peak Width&Shoulder"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
-    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
+    #geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
     geom_point(aes(x=cut_timepeak, y = cut_valpeak), col = "red") + 
     ggtitle(all_strains[jj])
     
