@@ -5,6 +5,7 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
   # strains = strain names
   # param_here = the big set of parameters
   # var = the string parameter name 
+  # R_cut = upper limit for R: needs to be higher than this
   # plot = 1 if want to plot outputs
   
   # Check name for parameter is a column heading 
@@ -32,7 +33,7 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
         
         # Check if good fit 
         fit <- rbind(fit, c(reps[i],strains[j],round(summary(lm.1)$r.squared,2)))
-        if(round(summary(lm.1)$r.squared,2) < R_cut){print(paste0("Poor fit for ", reps[i],", ", strains[j],". R^2 = ",round(summary(lm.1)$r.squared,2))); break}
+        if(round(summary(lm.1)$r.squared,2) < R_cut){print(paste0("Poor fit for ", reps[i],", ", strains[j],". R^2 = ",round(summary(lm.1)$r.squared,2)));}
         
         xx <- c(min(as.numeric(unlist(dda[,var])) ) - 10, as.numeric(unlist(dda[,var])),
                 max(as.numeric(unlist(dda[,var])) ) + 10 ) # the variable
@@ -145,9 +146,11 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
         log_red_168[3,(ddc$inocl-1)] <- ddc$pred_inoc
         log_red_168[3,6:9] <-c(i,j,168,4)
         
+        log_red_168 <- cbind(log_red_168,round(summary(lm.1)$r.squared,3))
+        
         reductions <- rbind(reductions,log_red_168)
         reductions <- rbind(reductions,
-                            c(perc_red_168, i, j, 168, 2))
+                            c(perc_red_168, i, j, 168, 2,round(summary(lm.1)$r.squared,3)))
       }else{print(c("no data for:",reps[i], strains[j]))}
       
       # Expect same percentage reduction for each inoculum? 
@@ -157,7 +160,7 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
   }
   
   reductions <- as.data.frame(reductions)
-  colnames(reductions) <- c("10^2","10^3","10^4","10^5","10^6","rep","strain_name","dry","meas") 
+  colnames(reductions) <- c("10^2","10^3","10^4","10^5","10^6","rep","strain_name","dry","meas","r2") 
   
   reductions$strain_name <- as.character(strains[reductions$strain_name])
   
