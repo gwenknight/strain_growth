@@ -293,7 +293,7 @@ write.csv(ddm,paste0("output/",name_code,"_all_ddm.csv"))
 ddm_cut <- ddm %>% 
   filter(Time > 3) %>% 
   group_by(strain, rep, drytime, inoc) %>% 
-  mutate(cutpart = ifelse(Time < shoulder_point_t,1,0)) %>%
+  mutate(cutpart = ifelse(Time <= shoulder_point_t,1,0)) %>%
   filter(cutpart == 1)
 
 write.csv(ddm_cut, "output/ddm_cut.csv")
