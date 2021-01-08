@@ -96,51 +96,70 @@ for(jj in 1:length(u)){ # for each strain
           
           ## If there is a peak then reassign peak 
           if(length(peaks_index) > 0){
-            w <- which(data1[peaks_index,"Time"] < 3)
-            if(length(w) > 0){peaks_index <- peaks_index[-w]}
-            if(length(peaks_index) > 0){ # if any later than 3 yrs
+            w_early <- which(data1[peaks_index,"Time"] < 5) # Remove early ones
+            if(length(w_early) > 0){peaks_index <- peaks_index[-w_early]}
+            w_high <- which(data1[peaks_index,"value_J"] < 0.6*max(data1$value_J)) # Remove low ones
+            if(length(w_high) > 0){peaks_index <- peaks_index[-w_high]}
+            if(length(peaks_index) > 0){ # if any later than 3 
               peaks_index = min(peaks_index)
               timepeak = data1[peaks_index,"Time"]
               valpeak = data1[peaks_index,"value_J"]
             }
           }
           
+          # Reassign up to peak 
+          data1 = data1[which(data1$Time <= as.numeric(timepeak)),]
+          
+          
           ### Check if the slope changes substantially in this period: may be a shoulder or a plateau near peak 
           if(dim(data1)[1]>4){ # If enough data
             st <- c()
+            
+            #plot(data1$Time, data1$value_J, "l")
+            #points(data1$Time, data1$value_J)
+            
             for(i in 2:(-1 + dim(data1)[1])){ # fit a linear model to the data in segments
-              data11 <- data1[max(1,i-4):i,]
+              data11 <- data1[max(1,i-6):i,]
               data12 <- data1[(i):dim(data1)[1],]
               lm.1 <- lm(data11$value_J ~ data11$Time)
               lm.2 <- lm(data12$value_J ~ data12$Time)
+              
+              #lines(data11$Time, lm.1$coefficients[1] + lm.1$coefficients[2]*data11$Time, col = "blue")
+              #lines(data12$Time, lm.2$coefficients[1] + lm.2$coefficients[2]*data12$Time, col = "red")
               
               st <- rbind(st, c(i,c(max(data11$value_J), max(data11$Time),lm.1$coefficients[2],lm.2$coefficients[2])))
             }
             
             st <- as.data.frame(st)
             colnames(st) <- c("i","maxval","maxtime","f_ang","s_ang") # first angle, second angle
-            st$d <- 10000
-            st$d[1:(dim(st)[1]-1)] = abs(diff(st$s_ang)) # look at change in second angle: want to know when substantial change
+            st$d <- 0; st$da <- 1000
+            st$d[1:(dim(st)[1]-1)] = diff(st$s_ang) # look at change in second angle: want to know when substantial change
+            st$da[1:(dim(st)[1]-1)] = abs(diff(st$s_ang)) # look at change in second angle: want to know when substantial change
+            
+            #plot(st$maxtime, st$d) 
+            #plot(data1$Time, data1$value_J)
             
             ## Check if shoulder
             st_upper <- st%>% filter(maxtime > 0.50*max(st$maxtime)) # but want to be past halfway
-            w1 <- which.min(st_upper$d)
-            w2 <- which.min(st_upper$d[-w1])
-            timepeak_s = min(st_upper[w1,"maxtime"], st_upper[-w1,"maxtime"][w2])
-            valpeak_s = data1[which(data1$Time == timepeak_s),"value_J"]
+            w1 <- which.min(st_upper$da) # as absolute this detects a plateau 
+            w2 <- which.min(st_upper$da[-w1])
+            timepeak_s = min(st_upper[w1,"maxtime"], st_upper[-w1,"maxtime"][w2]) # earliest 
+            valpeak_s = as.numeric(data1[which(data1$Time == timepeak_s),"value_J"])
             
             ## Check not too low: if cut point already good enough. 
             # If OK then cut at shoulder value
-            if(valpeak_s > 0.65*max(data1$value_J)){valpeak <- valpeak_s; timepeak = timepeak_s} 
-            
+            if(valpeak_s > 0.65*max(data1$value_J)){
+              valpeak <- valpeak_s; timepeak = timepeak_s}else{
+                
             ## Check if end peak should be moved forward at all (i.e. a peak: want end of exponential growth )
             st_upper <- st %>% filter(maxval > 0.80*max(st$maxval)) # want to be near the end 
             #if(dim(st_upper)[1] > 5){ # have at least 4 d values to look at
             w1 <- which.max(st_upper$d)
-            if(w1 != 1){ # if its not just a slope down - if there is a plateau near the top? i.e. index now just the earliest point
-              timepeak = st_upper[w1,"maxtime"]
-              valpeak = as.numeric(data1[which(data1$Time == timepeak_top),"value_J"])}
-            #}
+            w2 <- which.max(st_upper$d[-w1])
+            if(min(w1,w2) != 1){ # if its not just a slope down - if there is a plateau near the top? i.e. index now just the earliest point
+              timepeak = st_upper[min(w1,w2),"maxtime"]
+              valpeak = as.numeric(data1[which(data1$Time == timepeak),"value_J"])}
+            }
           }
           
           
@@ -196,7 +215,7 @@ dk <- left_join(ddm, keep[,c("strain","rep","drytime","inoc","cut_exp","cut_time
 # Chop at this new time point for those with shoulders
 dk_cut <- dk %>% 
   group_by(strain, rep, drytime, inoc) %>% 
-  mutate(cutpart = ifelse(Time < cut_timepeak,1,0)) %>%
+  mutate(cutpart = ifelse(Time <= cut_timepeak,1,0)) %>%
   filter(cutpart == 1)
 
 

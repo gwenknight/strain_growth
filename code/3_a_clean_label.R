@@ -203,8 +203,9 @@ for(jj in 1:length(all_strains)){ # for each strain
                                   "Width&Shoulder","Peak Width&Shoulder"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
-    #geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
+    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
     geom_point(aes(x=cut_timepeak, y = cut_valpeak), col = "red") + 
+    geom_point(data = dd, aes(x=cut_timepeak, y = cut_valpeak), col = "red") + 
     ggtitle(all_strains[jj])
     
   ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here
