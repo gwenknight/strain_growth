@@ -114,11 +114,11 @@ for(jj in 1:length(u)){ # for each strain
               lm.1 <- lm(data11$value_J ~ data11$Time)
               lm.2 <- lm(data12$value_J ~ data12$Time)
               
-              st <- rbind(st, c(i,c(max(data11$Time),lm.1$coefficients[2],lm.2$coefficients[2])))
+              st <- rbind(st, c(i,c(max(data11$value_J), max(data11$Time),lm.1$coefficients[2],lm.2$coefficients[2])))
             }
             
             st <- as.data.frame(st)
-            colnames(st) <- c("i","maxtime","f_ang","s_ang") # first angle, second angle
+            colnames(st) <- c("i","maxval","maxtime","f_ang","s_ang") # first angle, second angle
             st$d <- 10000
             st$d[1:(dim(st)[1]-1)] = abs(diff(st$s_ang)) # look at change in second angle: want to know when substantial change
             
@@ -134,11 +134,13 @@ for(jj in 1:length(u)){ # for each strain
             if(valpeak_s > 0.65*max(data1$value_J)){valpeak <- valpeak_s; timepeak = timepeak_s} 
             
             ## Check if end peak should be moved forward at all (i.e. a peak: want end of exponential growth )
-            st_upper <- st%>% filter(maxtime > 0.8*max(st$maxtime)) # want to be near the end 
-            w1 <- which.min(st_upper$d)
+            st_upper <- st %>% filter(maxval > 0.80*max(st$maxval)) # want to be near the end 
+            #if(dim(st_upper)[1] > 5){ # have at least 4 d values to look at
+            w1 <- which.max(st_upper$d)
             if(w1 != 1){ # if its not just a slope down - if there is a plateau near the top? i.e. index now just the earliest point
               timepeak = st_upper[w1,"maxtime"]
               valpeak = as.numeric(data1[which(data1$Time == timepeak_top),"value_J"])}
+            #}
           }
           
           
