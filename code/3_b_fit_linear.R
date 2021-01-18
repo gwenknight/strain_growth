@@ -333,7 +333,7 @@ ggsave("plots/fit/lineage_succ_unsucc_labelled.pdf")
 succ_go %>%
   filter(meas == 1) %>%
   pivot_longer(cols = c('10^3':'10^5')) %>% 
-  filter(value < 0 , lineage == "CC5") %>%
+  filter(value < 0) %>%#, lineage == "CC5") %>%
   dplyr::select(strain_name, rep, name, value, meas)
   
   
