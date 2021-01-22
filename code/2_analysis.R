@@ -114,10 +114,26 @@ for(jj in 1:length(u)){ # for each strain
   for(ii in 1:length(r)){ # for each replicate: fit to all the data, not just each replicate
     for(kk in c(1,3)){ #each of the three experimental conditions (0, 24, 168): most just 0 168 now
       for(ll in 1:length(q)){ #each of the inocula
+
+        strain <- u[jj];
+        replicate <- r[ii]
+        condition <- drying_times[kk]
+        inocl <- q[ll]
         
-        print(c(jj,ii,kk,ll))
+        wi <- intersect(which(ddm$strain == strain),which(ddm$rep == replicate)) # if fit to each replicate
+        wj <- intersect(wi, which(ddm$drytime == condition))
+        w <- intersect(wj, which(ddm$inoc == as.numeric(inocl)))
         
-        p <- fit_growth_curve(u[jj], r[ii], drying_times[kk],q[ll], ddm, 0,90) # parameters for growth curve
+        if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
+          data1 <- data[w,] 
+          
+          print(c(strain, replicate, condition, inocl))
+        
+        
+        p1 <- fit_growth_curve(u[jj], r[ii], drying_times[kk],q[ll], ddm, 0,90) # parameters for growth curve
+        
+        p <- cut_extract(data1, strain, replicate, condition, inocl) ### NEW 
+        }
         
         ## Required parameters
         if(length(p$param_n) > 0){ # IF DATA then store
