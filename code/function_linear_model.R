@@ -48,7 +48,7 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
             geom_line(data = pred, aes(x=xx, y = 10^yy), col = "red") + 
             scale_x_continuous(var_name, limits = c(3,15)) + 
             scale_y_log10("Inoculum",limits = c(0.001,120000)) + 
-            geom_text(x=7, y=2, label=paste0("R^2 = ", round(summary(lm.1)$r.squared,2))) + 
+            geom_text(x=7, y=2, label=paste0("R^2 = ", round(summary(lm.1)$r.squared,4))) + 
             ggtitle("Pre-drying: black = data, red = linear model fit")
           
           ### Not a great fit to the raw data
