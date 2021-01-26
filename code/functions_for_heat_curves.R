@@ -55,6 +55,7 @@ fit_growth_curve <- function(strain, replicate, condition, inocl, data,
   if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
     data1 <- data[w,]  # just get the data for this experiment (strain, time, value, drying time)
     
+    print(head(data1))
     ## Growth Curve # (see fig 3 of vv33i07.pdf)
     ## This gives lag time and exponential growth rate cumulative
     gc_fit <- gcFitSpline(data1$Time, data1$value_J)
@@ -270,7 +271,7 @@ fit_growth_curve <- function(strain, replicate, condition, inocl, data,
       ## model fit:
       gc_df <- as.data.frame(cbind(gc_fit$fit.time, gc_fit$fit.data))
       colnames(gc_df) <- c("Time","value")
-      #gc_df$value_J <- c(gc_df[1,"csum"],diff(gc_df$csum)) # CHANGE TO CUMULATIVE? 
+      #gc_df$value_J <- c(gc_df[1,"csum"],diff(gc_df$csum)) # CHANGE TO CUMULATIVE? 
       gc_dfm <- reshape2::melt(gc_df, id.vars = "Time")
       ## add fit to data plot
       gg <- gg + geom_line(data = gc_df, aes(x=Time,y=value), col= "red")

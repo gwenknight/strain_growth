@@ -246,13 +246,13 @@ cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 8
   param_o   <- c(time_max_heat_flow, value_max_heat_flow, 
                  s$mu.spline, s$lambda.spline,s$integral.spline, 
                  odd_peak, odd_width, max_level, odd_shoulder, odd_double, shoulder_point, shoulder_point_v)
-  
-  
+
+  print(param_o)  
   ####******************************************* This is the first analysis. *******************************************
   # Now cut at shoulder or first peak
   if(shoulder_point > 0){
     cut_point_t <- shoulder_point; cut_point_v <- shoulder_point_v}else{
-      cut_point_t <- t_m_h_flow; cut_point_v <- v_m_h_flow
+      cut_point_t <- time_max_heat_flow; cut_point_v <- value_max_heat_flow;
     }
   
   # NEW TS: cut up to first peak or shoulder 
@@ -340,7 +340,7 @@ cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 8
   
   g1 <- ggplot(ts,aes(x=Time, y= value_J)) + geom_line() + 
     geom_point(data = ts[which(round(ts$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
-    geom_point(data= ts[1,], aes(x=shoulder_point_t, y = shoulder_point_v), col = "black") + 
+    geom_point(data= ts[1,], aes(x=shoulder_point, y = shoulder_point_v), col = "black") + 
     ggtitle(paste0(u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll]))
   ggsave(paste0("plots/shoulder_curves/cutpoint_highlighted_",strain,"_",replicate, "_",condition,"_",inocl,".pdf")) 
   
@@ -354,7 +354,7 @@ cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 8
   
   
   ## Build vectors of required parameters to output
-  param_o   <- c(param_o, s$mu.spline, timepeak, valpeak)
+  param_o   <- c(strain, replicate, condition, inocl, param_o, s$mu.spline, timepeak, valpeak)
   
   return(list(param = param_o))
   
