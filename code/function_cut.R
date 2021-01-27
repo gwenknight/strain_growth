@@ -4,7 +4,7 @@
 ### Output: time series data up to cut point: time of end of exponential growth
 ### Output: lag time / exponential growth / time of end of exponential growth 
 
-cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 80, plot = 0){
+cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 90, plot = 0, plot_where = "plots/"){
   ## ts = timeseries (time and value_J)
   ## strain, replicate, condition, inocl = labels for output
   ## plot = 0:  don't plot. 1 to plot
@@ -239,14 +239,14 @@ cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 8
     gg <- gg + geom_line(data = gc_df, aes(x=Time,y=value), col= "red")
     
     ## save
-    ggsave(paste0("plots/",strain,"_",replicate, "_",condition,"_", inocl, "_model_fit.pdf"))
+    ggsave(paste0(plot_where,strain,"_",replicate, "_",condition,"_", inocl, "_model_fit.pdf"))
   } 
   
   ## Build vectors of required parameters to output
   param_o   <- c(time_max_heat_flow, value_max_heat_flow, 
                  s$mu.spline, s$lambda.spline,s$integral.spline, 
                  odd_peak, odd_width, max_level, odd_shoulder, odd_double, shoulder_point, shoulder_point_v)
-
+  
   print(param_o)  
   ####******************************************* This is the first analysis. *******************************************
   # Now cut at shoulder or first peak
@@ -337,12 +337,14 @@ cut_extract <- function(ts, strain, replicate, condition, inocl, thresh_wide = 8
       }
   }
   
-  
-  g1 <- ggplot(ts,aes(x=Time, y= value_J)) + geom_line() + 
-    geom_point(data = ts[which(round(ts$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
-    geom_point(data= ts[1,], aes(x=shoulder_point, y = shoulder_point_v), col = "black") + 
-    ggtitle(paste0(u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll]))
-  ggsave(paste0("plots/shoulder_curves/cutpoint_highlighted_",strain,"_",replicate, "_",condition,"_",inocl,".pdf")) 
+  if(plot == 1){
+    g1 <- ggplot(ts,aes(x=Time, y= value_J)) + geom_line() + 
+      geom_point(data = ts[which(round(ts$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
+      geom_point(data= ts[1,], aes(x=shoulder_point, y = shoulder_point_v), col = "black") + 
+      ggtitle(paste0(u[jj],"_",r[ii], "_",drying_times[kk],"_",q[ll]))
+    dir.create(file.path(here(), paste0(plot_where,"/shoulder_curves")),showWarnings = FALSE)
+    ggsave(paste0(plot_where,"shoulder_curves/cutpoint_highlighted_",strain,"_",replicate, "_",condition,"_",inocl,".pdf")) 
+  }
   
   tstopeak = ts[which(ts$Time <= as.numeric(timepeak)),c("Time","value_J")]
   

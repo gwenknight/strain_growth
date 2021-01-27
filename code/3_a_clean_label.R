@@ -1,6 +1,6 @@
 #### Next steps
 ## Where do we go from the parameter set? 
-# (1) Get the parameter sets from 2_analysis.R then 2_analysis_cut.R
+# (1) Get the parameter sets from 2_analysis.R 
 
 # (2) Clean datasets: 
 ### How many odd datasets in a drytime for a single rep? 
@@ -25,8 +25,8 @@ theme_set(theme_bw(base_size=24)) # theme setting for plots: black and white (bw
 setwd(here:here())
 
 ##### READ IN DATA
-ddm <- read.csv("output/cut_all_ddm.csv")[,-1]
-param <- read.csv("output/cut_all_param.csv")[,-1]
+ddm <- read.csv("output/cut_all_time_series_fit_params.csv")[,-1]
+param <- read.csv("output/cut_all_model_fit_params.csv")[,-1]
 
 # Change from inoc to scalar
 # scalar = 1 at 10^6, 1/10th of each next dilution
@@ -66,7 +66,7 @@ hist(table(param[w_odd,"strain_name"]), breaks = seq(0,15,1))
 dev.off()
 
 t <- table(param[w_odd,"strain_name"])
-odd_by_freq <- names(t[order(t)][(dim(t)-10):dim(t)]) # 10 with the greatest number of odd? 
+odd_by_freq <- names(t[order(t)][(dim(t)-10):dim(t)]) # 12 with the greatest number of odd? 
 
 #### (1) LABEL replicate if > 50% odd ( at least 3 replicates per strain). For removal?
 #### (2) LABEL dataset if < 50% odd (usually at least 3 datasets per replicate and drying time). For removal?
@@ -153,29 +153,13 @@ typical_strains <- as.numeric(unlist(param %>% filter(odd_strains == 0) %>% summ
 ### STORE 
 write.csv(param, paste0("output/param_labelled.csv"))
 
-#### Move plots of odd strains into one folder
-dir.create(paste0("plots/odd"), showWarnings = FALSE) # warnings = FALSE otherwise get warning if folder already exists
-dir.create(paste0("plots/typical"), showWarnings = FALSE)
-
-
-name_code <- "all_(1_13)_"
-for(i in odd_strains){
-  file.copy(paste0("plots/",name_code,"odd_highlighted_",i,".pdf"), paste0("plots/odd"))
-}
-for(i in typical_strains){
-  file.copy(paste0("plots/",name_code,"odd_highlighted_",i,".pdf"), paste0("plots/typical"))
-}
-
-ddm$odd_type <- as.character(ddm$odd_type)
-write.csv(ddm, "output/data_to_cut.csv")
 
 #### FILTERED plot - only the clean data
 ### ALL STRAINS 
 all_strains = unique(param$strain)
 
-ddm_orig <- read.csv(paste0("output/",name_code,"_all_ddm.csv"))[,-1] # Whole time course data
-
 cols = c(1,brewer.pal(n = 8, name = "Set1"))
+dir.create(file.path(here(), "plots/final_data_split_highlighted/"),showWarnings = FALSE)
 
 for(jj in 1:length(all_strains)){ # for each strain
   
@@ -191,7 +175,7 @@ for(jj in 1:length(all_strains)){ # for each strain
     wc<-c(wc,intersect(w1,which(ddm_strain$drytime == clean[i,"drytime"])))
   }
   
-  dd <- ddm_strain[wc,]
+  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time < shoulder_point_t)
   dd$odd_type <- as.character(dd$odd_type)
   ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
   
@@ -204,8 +188,8 @@ for(jj in 1:length(all_strains)){ # for each strain
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
     geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
-    geom_point(aes(x=cut_timepeak, y = cut_valpeak), col = "red") + 
-    geom_point(data = dd, aes(x=cut_timepeak, y = cut_valpeak), col = "red") + 
+    geom_point(aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+    geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     ggtitle(all_strains[jj])
     
   ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here

@@ -57,9 +57,9 @@ length(unique(ddm$strain)) # 98 in 1-13
 #ddm <- as.data.frame(rbind(ddm1,ddm2,ddm6,ddm7))
 #ddm <- ddm6
 
-#### NAME code: how to label output dependening on strains being analysed
+#### NAME code: how to label output depending on strains being analysed
 #name_code <- "1_2_6_7_"
-name_code <- "all_(1_13)_"
+name_code <- "cut_"
 
 ###******* PLOTTING *************#######################################################################################################################################
 # To look at raw data
@@ -101,10 +101,10 @@ q <- unique(ddm$inoc)
 # Fit separately to each replicate as otherwise don't have enough data for later predictions
 # still having up to 3 experimental drytimes despite set2 not having 24hr data
 # Where the parameters for each strain are stored
-param <- matrix(0, length(u)*length(r)*length(q)*3, 12); # number of strains x number of replicates x number of experimental conditions
+param <- matrix(0, length(u)*length(r)*length(q)*3, 19); # number of strains x number of replicates x number of experimental conditions
 index <- 1 # for counting 
 max <- c() # for calibration
-p_double_curves <- c() # for storing the double curve plot data
+#p_double_curves <- c() # for storing the double curve plot data
 drying_times <- c(0,24,168)
 
 ## Run thru each strain/rep/drying time/ inoculum: fit a growth curve to each
@@ -144,19 +144,17 @@ param_orig <- param
 
 ## Fitted parameters
 param <- as.data.frame(param)
-param_n <- as.data.frame(param_n)
 colnames(param) <- c("strain_name","rep","drytime","inocl",
                      "t_m_h_flow", "v_m_h_flow", "exp_gr","lag","auc",
                      "odd_peaks","odd_width","width_peak","odd_shoulder","odd_double","shoulder_point_t","shoulder_point_v",
-                     "exp_cut", "timepeak", "valpeak")
+                     "cut_exp", "timepeak", "valpeak")
 
 w<-which(param$lag!=0); param <- param[w,] # remove 0 values
 
-dim(param) # 523 now (sets 1&2&6)
-
+dim(param)
 
 #### CHECK FOR ODD BEHAVIOUR
-param$any_odd <- param$odd_peaks + param$odd_width + param$odd_shoulder 
+param$any_odd <- as.numeric(param$odd_peaks) + as.numeric(param$odd_width) + as.numeric(param$odd_shoulder)
 param$odd_type <- "0"
 param$odd_type_db <- "0"
 param[which(param$odd_peaks > 0),"odd_type"] <- paste0(param[which(param$odd_peaks > 0),"odd_type"], "1")
@@ -170,16 +168,20 @@ unique(param$odd_type_db)
 write.csv(param,paste0("output/",name_code,"all_model_fit_params.csv"))
 
 
-######****** ODD behaviour ******#################
+######****** ODD behaviour & CUT POINT into main timeseries data ******#################
 no_odd <- c()
 ddm$odd_type <- "0"
 ddm$odd_type_db <- "0"
+ddm$shoulder_point_t <- 0
+ddm$shoulder_point_v <- 0
+ddm$shoulder_cut <- 0
 
 #### store odd type in main timeseries dataframe
 for(jj in 1:length(u)){ # for each strain
   
   pp <- param %>% filter(strain_name == u[jj])
   ii <- which(ddm$strain == u[jj])
+  print(u[jj])
   
   # Look at odd ones
   w<-which(pp$any_odd > 0)
@@ -195,20 +197,6 @@ for(jj in 1:length(u)){ # for each strain
       
     }
   }
-  
-  ddm$odd_type <- factor(ddm$odd_type, levels = c("0","01","02","03","012","013","023","0123"))
-  ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","01","02","03","04","012","013","014","0134","034","023","0123","0124","01234"))
-}
-
-
-#### CUT POINT into main dataframe
-ddm$shoulder_point_t <- 0
-ddm$shoulder_point_v <- 0
-ddm$shoulder_cut <- 0
-for(jj in 1:length(u)){ # for each strain
-  print(u[jj])
-  pp <- param %>% filter(strain_name == u[jj])
-  ii <- which(ddm$strain == u[jj])
   
   # Move over cut point or time to peak 
   for(ww in 1:length(pp[,1])){ # for every row
@@ -231,5 +219,12 @@ for(jj in 1:length(u)){ # for each strain
     }
     
   }
+  
+  
 }
 
+ddm$odd_type <- factor(ddm$odd_type, levels = c("0","01","02","03","012","013","023","0123"))
+ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","01","02","03","04","012","013","014","0134","034","023","0123","0124","01234"))
+
+##### Save output 
+write.csv(ddm,paste0("output/",name_code,"all_time_series_fit_params.csv"))
