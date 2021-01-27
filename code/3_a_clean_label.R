@@ -24,7 +24,7 @@ theme_set(theme_bw(base_size=24)) # theme setting for plots: black and white (bw
 
 setwd(here:here())
 
-##### READ IN DATA
+#####*************************** READ IN DATA *******************###############
 ddm <- read.csv("output/cut_all_time_series_fit_params.csv")[,-1]
 param <- read.csv("output/cut_all_model_fit_params.csv")[,-1]
 
@@ -51,111 +51,7 @@ drytimes <- unique(param$drytime)
 ### Code for linear model 
 source("code/function_linear_model.R")
 
-#################**************** (2) LABEL ODD STRAINS *******************###############
-
-####### How many odd? 
-w_odd <- which(param$any_odd>=1) # any_odd is the sum of all odd indicators. 1= just one indicator, 3 = three indicators etc
-length(w_odd)
-100*length(w_odd) / dim(param)[1] # 16% of datasets
-# e.g. 1_2_6_ has 19% of datasets are odd
-100*length(unique(param[w_odd,"strain_name"])) / length(unique(param$strain_name)) # 54% of strains have an odd dataset
-
-### By looking at the distribution of "odd" behaviour in strains can we see those that are non-typical? Not clear
-pdf("plots/distribution_oddness_in_strains.pdf")
-hist(table(param[w_odd,"strain_name"]), breaks = seq(0,15,1))
-dev.off()
-
-t <- table(param[w_odd,"strain_name"])
-odd_by_freq <- names(t[order(t)][(dim(t)-10):dim(t)]) # 12 with the greatest number of odd? 
-
-#### (1) LABEL replicate if > 50% odd ( at least 3 replicates per strain). For removal?
-#### (2) LABEL dataset if < 50% odd (usually at least 3 datasets per replicate and drying time). For removal?
-remove_reps <- c()
-remove_dataset <- c()
-
-for(i in strains){ # for all strains
-  for(j in reps){ # and replicates
-    print(c(i,j))
-    # Which data is for this strain and rep? 
-    wthis <- intersect(which(param$strain_name == i),which(param$rep == j))
-    
-    # Within a dry time (e.g. 168hrs) what is odd? 
-    for(k in drytimes){
-      wk <- intersect(wthis, which(param$drytime == k))
-      if(length(wk)>0){
-        # how many odd datasets? 
-        n_odd <- nnzero(param[wk,"any_odd"])
-        # how many datasets?
-        n_measures <- length(wk)
-        # proportion odd
-        p_odd_m <- n_odd / n_measures 
-        if(p_odd_m >= 0.5){remove_reps <- rbind(remove_reps, c(i, j))} # if more than 50% write it down to remove this rep
-        if(n_odd > 0 & p_odd_m < 0.5){ # if there are odd ones but proportion < 50% just remove this dataset
-          where_odd <- which(param[wk,"any_odd"] > 0) # which are odd
-          for(iww in where_odd){
-            remove_dataset <- rbind(remove_dataset, c(i,j,k, as.numeric(param[wk[iww],"inocl"])))} # store this dataset to remove
-        }
-      }
-    }
-  }
-}
-
-# (1) Check if any reps to remove but keep strain typical
-tr <- table(remove_reps[,1]) # How many replicates to remove? 
-w1 <- which(tr == 1) # Only remove a replicate if there is only one to remove
-# Cycle through those to remove
-if(length(w1)>0){
-  strain_remove_one <- names(tr)[w1] # which have only one to remove? 
-  rep_to_remove <- c()
-  # For those strains that have one replicate to remove
-  for(i in strain_remove_one){
-    wi <- which(remove_reps[,1] == i) # which is the replicate?
-    rep_to_remove <- rbind(rep_to_remove,
-                           cbind(rep(i,length(wi)), remove_reps[which(remove_reps[,1] == i),2]))
-  }
-  wremove <- c()
-  # Index of where this rep is to remove
-  for(i in 1:length(rep_to_remove[,1])){
-    wremove <- c(wremove, 
-                 intersect(which(param$strain_name == rep_to_remove[i,1]),
-                           which(param$rep == rep_to_remove[i,2])))
-  }
-}
-
-# LABEL those reps that should be removed 
-param$removed_rep <- 0 # Note this
-param[wremove,"removed_rep"] <- 1
-
-
-# (2) Check if any datasets to remove but keep strain typical
-t <- table(remove_dataset[,1]) # How many datasets to remove? 
-
-## Label all these datasets
-param$removed_dataset <- 0
-for(i in 1:length(remove_dataset[,1])){
-  wst <- which(param$strain_name == remove_dataset[i,1])
-  wstr <- intersect(wst, which(param$rep == remove_dataset[i,2]))
-  wstrt <- intersect(wstr, which(param$drytime == remove_dataset[i,3]))
-  wstrti <- intersect(wstrt, which(param$inocl == remove_dataset[i,4]))
-  
-  param[wstrti,"removed_dataset"] <- 1
-}
-
-
-# which have more than one replicate that should be removed? ODD STRAINS
-w1 <- which(tr > 1) # Which have more than one odd replicate? 
-odd_strains_names <- names(tr[w1])
-
-param <- param %>% mutate(odd_strains = ifelse(strain_name %in% odd_strains_names, 1, 0))
-
-typical_strains <- as.numeric(unlist(param %>% filter(odd_strains == 0) %>% summarise(unique(strain_name))))
-
-### STORE 
-write.csv(param, paste0("output/param_labelled.csv"))
-
-
-#### FILTERED plot - only the clean data
-### ALL STRAINS 
+#####*************************** FILTERED plot - only the clean data *******************###############
 all_strains = unique(param$strain)
 
 cols = c(1,brewer.pal(n = 8, name = "Set1"))
@@ -196,8 +92,9 @@ for(jj in 1:length(all_strains)){ # for each strain
 }
 
 
-#################**************** (3) CHECK EXPONENTIAL GROWTH*******************###############
+#################**************** CHECK EXPONENTIAL GROWTH *******************###############
 param_clean <- param #%>% filter(removed_rep == 0, removed_dataset == 0) ### COULD FILTER ON BEHAVIOUR PAST PEAK 
+dir.create(file.path(here(), "plots/exp_growth/"),showWarnings = FALSE)
 
 # Look at the distribution of exponential growth for typical strains
 for(i in unique(param_clean$strain_name)){
@@ -209,34 +106,31 @@ for(i in unique(param_clean$strain_name)){
     theme(legend.position="bottom")
   
   g1 + g2 + plot_layout(widths = c(1, 2)) 
-  if(pa$odd_strains == 0){ggsave(paste0("plots/exp_growth/typical_",i,".pdf"))}else{ggsave(paste0("plots/exp_growth/odd_",i,".pdf"))}
+  ggsave(paste0("plots/exp_growth/",i,".pdf"))
 }
 
 po <- param_clean %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = min(rep), 
                                                        ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
   mutate(rep_st = case_when((ones == 1) ~ 1,
                             (threes == 1)  ~ 3,
-                            (twos == 1) ~ 2)) # tries pmax etc didn't work
+                            (twos == 1) ~ 2)) # tries pmax etc didn't work # Labels reps as 1 2 3
 
 write.csv(po, "output/param_labelled_repst.csv")
 
 ##### Diagnostic / exploring plots
-ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
+ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) +
   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/exp_growth_across_replicates.pdf")
 
 ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
   scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/exp_growth_across_inocl_bp.pdf")
 
 ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
   scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
@@ -244,27 +138,19 @@ ggsave("plots/exp_growth/exp_growth_across_inocl_bpgrp.pdf")
 
 ggplot(po, aes(x=inocl, y = cut_exp,aes(group = drytime))) + geom_point() +  
   geom_smooth(method = "loess") +  #, #, formula = y ~ a * x + b,method.args = list(start = list(a = 0.1, b = 0.1))) + 
-  facet_wrap(drytime~odd_strains) + 
+  facet_wrap(~drytime) + 
   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
   scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/exp_growth_across_inocl_pointsline.pdf")
 
 ggplot(po, aes(x=rep_st, y = t_m_h_flow, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
   scale_y_continuous("Time to peak") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/time_to_peak_across_replicates.pdf")
 
-ggplot(po, aes(x = cut_exp, y = t_m_h_flow,group = interaction(rep_st, drytime, strain_name))) + 
-  geom_point(aes(col = factor(drytime))) + 
-  geom_line() +
-  facet_wrap(~odd_strains)
-
-
 ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
@@ -300,14 +186,12 @@ ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inoclgrp.pdf",width =
 
 
 ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
   scale_y_continuous("exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")
 ggsave("plots/exp_growth/across_replicates_all.pdf")
 
 ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
-  facet_wrap(~odd_strains) + 
   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
   theme(legend.position="bottom")

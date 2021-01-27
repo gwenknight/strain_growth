@@ -12,11 +12,10 @@ Code to characterise strains
 - characterise if odd peak / width / shoulder
 
 First 2_analysis.R for all strains
-Then 2_analysis_cut.R for those that have a shoulder and for all strains: cut off first 3hrs and find exponential up to just first peak
 
 Returns two files 
-output/cut_all_ddm.csv: time series + whether odd or not + new cut exponential growth     
-output/cut_all_param.csv: summary parameters for each dataset
+output/cut_all_time_series_fit_params.csv": time series + whether odd or not + new cut exponential growth     
+output/cut_all_model_fit_params.csv: summary parameters for each dataset
 
 Returns plots
 plot/shoulder_curves: just those strains with a shoulder highlights the point at which they are cut (first cut doesn't always give good time to peak)
