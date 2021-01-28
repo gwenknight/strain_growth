@@ -126,11 +126,11 @@ for(jj in 1:length(u)){ # for each strain
         if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
           data1 <- ddm[w,] # Grab data
           
-          p <- cut_extract(data1, strain, replicate, condition, inocl) ### NEW function: runs on any timeseries: gives baseline and cut parameter analysis
+          p <- cut_extract(data1, "Time", "value_J", paste(strain, replicate, condition, inocl,sep="_")) ### NEW function: runs on any timeseries: gives baseline and cut parameter analysis
           
           ## Required parameters
           
-          param[index,] <- p$param
+          param[index,] <- c(strain, replicate, condition, inocl, p$param)
           index <- index + 1 # counting for storing matrix - next row each iteration
         }
         
