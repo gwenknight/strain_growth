@@ -72,43 +72,54 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   if(length(peaks_index) > 0){ # MAY BE NO PEAK
     if(length(peaks_index) > 1){
       # REMOVE - early ones
-      we<-which(ts[peaks_index,Time]>3) 
+      we<-which(ts[peaks_index,Time]>4) 
       # REMOVE - late ones
       w<-intersect(we,which(ts[peaks_index,Time]< 0.90*max(ts[,Time]))) # remove > 95% of time
       wl<-intersect(w,which(ts[peaks_index,Time] > 0.6*max(ts[,Time]))) # which in the odd 70-95% of the time range
       if(length(wl)>0){ # if a late peak check it is big 
         for(gg in 1:length(wl)){
-          if(ts[peaks_index[wl[gg]],value] < 0.45*max(ts[peaks_index,value])){ # if not bigger than 40% of peak
+          if(ts[peaks_index[wl[gg]],value] < 0.45*max(ts[,value])){ # if not bigger than 40% of maximum value in timeseries
             w <-setdiff(w,wl[gg]) }}}   # then remove
       peaks_index <- peaks_index[w] # Keep the ones not at the beginning / end
+      
+      # Check height ok - only want places with more than 45% of maximum (remove those little noisy bumps)
+      w <- which(ts[peaks_index,value] > 0.45*max(ts[,value]))
+      peaks_index <- peaks_index[w]
+      
       # Sort by height - want to compare to and keep the tallest (first now in peaks_index)
       o <- order(ts[peaks_index,value], decreasing = "TRUE")
       peaks_index <- peaks_index[o]
+    } else{ # if only one, check really a high point: greater than 45% of max of data
+      if(ts[peaks_index,value] < 0.45*max(ts[,value])){
+        peaks_index <- NA} # if too small then remove
     }
     
-    # When are the peaks? 
-    time_peaks <- as.numeric(unlist(ts[peaks_index,Time]))
-    time_peaks_diff <- time_peaks - time_peaks[1] # how far apart are they?
-    # If multiple far apart then issue: double peaks
-    keep_time_far_apart <- which(abs(time_peaks_diff) > 5) 
-    
-    if(length(keep_time_far_apart) >= 1){odd_peak <- 1} # if multiple peaks
-    if(any(ts[peaks_index,value] < 0.001)){odd_peak <- 1} # or if peak low
-    
-    # If close and same height (90% of tallest) then odd (peak decline plateau decline OK)
-    close_peaks <- which(abs(time_peaks_diff) <= 5)
-    close_peaks_i <- 1
-    if(length(close_peaks)>1){
-      for(i in 2:length(close_peaks)){
-        ifelse(ts[peaks_index[close_peaks[i]],value]/ts[peaks_index[close_peaks[1]],value]> 0.9,
-               close_peaks_i <- c(close_peaks_i,i),"")
-      }}
-    
-    if(length(close_peaks_i) > 1){odd_peak <- 1} # if multiple close time and height peaks
-    
-    # Only keep those peaks that are far apart
-    time_peaks <- time_peaks[c(1,keep_time_far_apart)]
-    peaks_index <- peaks_index[c(1,keep_time_far_apart)]
+    if(is.numeric(peaks_index)){  # If there remain peaks
+      
+      # When are the peaks? 
+      time_peaks <- as.numeric(unlist(ts[peaks_index,Time]))
+      time_peaks_diff <- time_peaks - time_peaks[1] # how far apart are they?
+      # If multiple far apart then issue: double peaks
+      keep_time_far_apart <- which(abs(time_peaks_diff) > 5) 
+      
+      if(length(keep_time_far_apart) >= 1){odd_peak <- 1} # if multiple peaks
+      if(any(ts[peaks_index,value] < 0.001)){odd_peak <- 1} # or if peak low
+      
+      # If close and same height (90% of tallest) then odd (peak decline plateau decline OK)
+      close_peaks <- which(abs(time_peaks_diff) <= 5)
+      close_peaks_i <- 1
+      if(length(close_peaks)>1){
+        for(i in 2:length(close_peaks)){
+          ifelse(ts[peaks_index[close_peaks[i]],value]/ts[peaks_index[close_peaks[1]],value]> 0.9,
+                 close_peaks_i <- c(close_peaks_i,i),"")
+        }}
+      
+      if(length(close_peaks_i) > 1){odd_peak <- 1} # if multiple close time and height peaks
+      
+      # Only keep those peaks that are far apart
+      time_peaks <- time_peaks[c(1,keep_time_far_apart)]
+      peaks_index <- peaks_index[c(1,keep_time_far_apart)]
+    }
   }
   
   ###### SHOULDER
@@ -119,55 +130,55 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   time_endline <- -40 #max(min(ts[,Time])+0.5, time_peaks[1] - 10) # 10 hrs from first peak or at least 30min in to recording data
   value_endline <- 0
   ## Start of line is where? (top point)
-  time_startline <- ifelse(is.na(time_peaks),  max(ts[,Time]), time_peaks[1]) # highest peak or last point
-  value_startline <- ifelse(is.na(time_peaks), as.numeric(ts[which(unlist(ts[,Time])==time_startline),value]), as.numeric(ts[peaks_index[1],value])) 
+  time_startline <- ifelse(length(peaks_index)==0,  max(ts[,Time]), ifelse(is.na(peaks_index),max(ts[,Time]),time_peaks[1])) # highest peak or last point
+  value_startline <- ifelse(length(peaks_index)==0, as.numeric(ts[which(unlist(ts[,Time])==time_startline),value]), 
+                            ifelse(is.na(peaks_index),as.numeric(ts[which(unlist(ts[,Time])==time_startline),value]),as.numeric(ts[peaks_index[1],value]))) 
   
   # Draw straight line, assuming peak time = time 0. 
   grad = as.numeric((value_endline - value_startline)/(time_endline - time_startline)) # Gradient of line
   # Only want exponential growth line
-  exp_start <- which.min(unlist(abs(ts[,Time]-s$lambda.spline+1)))
-  times_line <- c(time_startline:exp_start) # The times for the line (x values)
+  exp_start <- as.numeric(unlist(ts[which.min(unlist(abs(ts[,Time]-s$lambda.spline))),Time]))
+  time_step = median(diff(ts$Time)) ## should be constant but some have varaition so take normal step size, but should be constant to work in the below
+  times_line <- seq(time_startline,exp_start,by = -time_step) # The times for the line (x values)
   
   
   # Predicted straight line
   pred_points_fit <- grad*(times_line - time_startline) + value_startline # remove times_startline as taking this to be time zero (so can use value_startline as y intercept)
   
   ### Visualise where peaks are if needed
-  # plot(ts[,Time],ts[,value], type = 'l', xlab = "Time", ylab = "value", xlim = c(-40,25))
-  #  points(unlist(ts[peaks_index,Time]), unlist(ts[peaks_index,value]), col = 'black', pch = 19)
+  # plot(unlist(ts[,Time]),unlist(ts[,value]), type = 'l', xlab = "Time", ylab = "value", xlim = c(-40,25))
+  # points(time_startline, value_startline, col = 'black', pch = 19)
   ## and can plot line against this if needed too 
-  #  lines(times_line, pred_points_fit, col= "blue")
+  # lines(times_line, pred_points_fit, col= "blue")
   
   ### Run through lines. 
   odd_shoulder<- 0
-  shoulder_point <- time_peaks[1] # shoulder before this
+  shoulder_point <- time_startline # shoulder before this
+  
   ### Visualise where peaks are if needed
-  # plot(ts[,Time],ts[,value], type = 'l', xlab = "Time", ylab = "value", xlim = c(0,25))
-  # points(unlist(ts[peaks_index,Time]), unlist(ts[peaks_index,value]), col = 'black', pch = 19)
+  # plot(unlist(ts[,Time]),unlist(ts[,value]), type = 'l', xlab = "Time", ylab = "value", xlim = c(0,25))
+  # points(time_startline, value_startline, col = 'black', pch = 19)
   
   for(i in -40:5){
     time_endline <- i #max(min(ts[,Time])+0.5, time_peaks[1] - 10) # 10 hrs from first peak or at least 30min in to recording data
     value_endline <- 0
     #where.end <- which.min(abs(ts[,Time] - time_endline)) # What time exactly is this? 
     #value_endline <- ts[where.end, value] # Find value at this time point
-    ## Start of line is where? (top point)
-    time_startline <- time_peaks[1] # highest peak
-    value_startline <- as.numeric(ts[peaks_index[1],value])
     
     # Draw straight line, assuming peak time = time 0. 
     grad = as.numeric((value_endline - value_startline)/(time_endline - time_startline)) # Gradient of line
-    times_line <- as.numeric(unlist(ts[peaks_index[1]:exp_start,Time])) # The times for the line (x values)
+    times_line <- seq(time_startline, exp_start,by = -time_step) # The times for the line (x values) #c(time_startline:exp_start) # The times for the line (x values)
     
     # Predicted straight line
     pred_points_fit <- grad*(times_line - time_startline) + value_startline # remove times_startline as taking this to be time zero (so can use value_startline as y intercept)
-    
     
     ## and can plot line against this if needed too 
     # lines(times_line, pred_points_fit, col= "blue")
     
     #### How far is the predicted straight line from the data? 
     #if(length(pred_points_fit) > 28){leng = 28}else{leng = length(pred_points_fit)}
-    dist <- c(pred_points_fit - as.numeric(unlist(ts[peaks_index[1]:exp_start,value])))
+    integer_times <- ts %>% filter(Time >= min(times_line), Time <= max(times_line))
+    dist <- as.numeric(c(pred_points_fit - unlist(integer_times[,value])))
     
     # Crossing points
     if(length(which(abs(diff(sign(dist)))==2)) > 2){# if cross more than twice then shoulder
@@ -189,15 +200,18 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     }
     
   }
+  
   if(odd_shoulder == 0){shoulder_point <- 0; shoulder_point_v <- 0 # no shoulder_point if no shoulder!
   }else{ws <- which(round(ts[,Time],5) == round(shoulder_point,5)); shoulder_point_v <- ts[ws,value]}
   
   #### If no shoulder but multiple peaks, want to grab time of first peak
-  if(length(time_peaks_diff) > 1 & odd_shoulder == 0){ # if multiple peaks but no shoulder
-    shoulder_point1 = min(time_peaks)
-    shoulder_point_v1 = ts[which(round(ts[,Time],5) == round(shoulder_point1,5)),value]
-    if((shoulder_point_v1 / ts[peaks_index[1],value]) > 0.5){ # shoulder needs to be high still! 
-      shoulder_point = shoulder_point1; shoulder_point_v = shoulder_point_v1 # Update shoulder values to ones that are > half way
+  if(length(peaks_index)!=0){
+    if(length(time_peaks_diff) > 1 & odd_shoulder == 0){ # if multiple peaks but no shoulder
+      shoulder_point1 = min(time_peaks)
+      shoulder_point_v1 = ts[which(round(ts[,Time],5) == round(shoulder_point1,5)),value]
+      if((shoulder_point_v1 / ts[peaks_index[1],value]) > 0.5){ # shoulder needs to be high still! 
+        shoulder_point = shoulder_point1; shoulder_point_v = shoulder_point_v1 # Update shoulder values to ones that are > half way
+      }
     }
   }
   
@@ -312,8 +326,8 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     for(i in 2:(-1 + dim(ts)[1])){ # fit a linear model to the data in segments
       ts1 <- ts[max(1,i-6):i,]
       ts2 <- ts[(i):dim(ts)[1],]
-      lm.1 <- lm(ts1[,value] ~ ts1[,Time])
-      lm.2 <- lm(ts2[,value] ~ ts2[,Time])
+      lm.1 <- lm(unlist(ts1[,value]) ~ unlist(ts1[,Time]))
+      lm.2 <- lm(unlist(ts2[,value]) ~ unlist(ts2[,Time]))
       
       #lines(ts1[,Time], lm.1$coefficients[1] + lm.1$coefficients[2]*ts1[,Time], col = "blue")
       #lines(ts2[,Time], lm.2$coefficients[1] + lm.2$coefficients[2]*ts2[,Time], col = "red")
