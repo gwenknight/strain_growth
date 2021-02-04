@@ -215,44 +215,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     }
   }
   
-  ##### Double curves? 
-  x <- ts[,Time]
-  y <- ts[,value]
-  
-  # Guesses for the parameters in the curve
-  startl=list(a=unlist(ts[peaks_index,value])[1]*1.5, 
-              b=diff(interval_peak)/3, 
-              c=unlist(ts[peaks_index,Time])[1],
-              d=unlist(ts[peaks_index,value])[1]*1.5, 
-              e=diff(interval_peak), 
-              f=unlist(ts[peaks_index,Time])[1])
-  # Set indicator/output parameters to zero
-  fit1 <- 0
-  plot_p <- 0
-  p <- 0
-  # Try to fit two normal curves using non-linear lear squares methods 
-  try(fit1 <- nls(y~(a/b)*exp(-(x-c)^2/(2*b^2))+(d/e)*exp(-(x-f)^2/(2*e^2)),start = startl), silent = TRUE)
-  
-  # If manage to fit
-  if(length(fit1) > 1){
-    # print that can 
-    print(paste("Double curve fit", name4output,sep = " "))
-    odd_double <- 1
-    # Save the predictions of the fit 
-    pred_p <- predict(fit1)
-    # Save the coefficients of the fit
-    p <- coef(fit1)
-    # Pull out the actual curves using the parameters in p
-    g1p <- (p["a"]/p["b"])*exp(-(x-p["c"])^2/(2*p["b"]^2)) 
-    g2p <- (p["d"]/p["e"])*exp(-(x-p["f"])^2/(2*p["e"]^2))
-    # Store the curves
-    plot_p <- as.data.frame(cbind(x,y,pred_p, g1p, g2p))
-    colnames(plot_p) <- c("time","value","fit","normal_curve1","normal_curve2")
-    # Store the parameters
-    plot_p$a <- p["a"]; plot_p$b <- p["b"]; plot_p$c <- p["c"]
-    plot_p$d <- p["d"]; plot_p$e <- p["e"]; plot_p$f <- p["f"]
-  }
-  
+ 
   ## Plot ts, cumulative and fit
   # if functions takes in a command to plot
   if(plot == 1){

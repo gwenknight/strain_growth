@@ -1,4 +1,4 @@
-### Analysis of sets 1, 2 & 6
+### Analysis of growth data
 
 ###******* LOAD UP LIBRARIES AND DATA NEEDED *************#############################################################
 ## libraries needed
@@ -41,28 +41,15 @@ ddm12 <- as.data.table(read.csv("data/ddm_set12.csv")[,-1])
 ddm13 <- as.data.table(read.csv("data/ddm_set13.csv")[,-1])
 ddm <- as.data.frame(rbind(ddm1,ddm2,ddm3,ddm4,ddm5,ddm6,ddm7,ddm8,ddm9,ddm10,ddm11,ddm12,ddm13) )
 
-length(unique(ddm$strain)) # 98 in 1-13
+length(unique(ddm$strain)) # 98 in sets 1-13
 
-# Add in cumulative 
-#ddm <- ddm %>% group_by(rep, drytime, strain, inoc) %>% mutate(csum = cumsum(value)) %>% ungroup()
-#ggplot(ddm, aes(x=Time, y = csum, group = interaction(inoc, strain, rep, drytime))) + geom_line()
-
-
-#### 1_2_6_7: for just a subset of analysis
-#ddm1 <- as.data.table(read.csv("data/ddm_set1.csv")[,-1])
-#ddm2 <- as.data.table(read.csv("data/ddm_set2.csv")[,-1])
-#ddm6 <- as.data.table(read.csv("data/ddm_set6.csv")[,-1])
-#ddm7 <- as.data.table(read.csv("data/ddm_set7.csv")[,-1])
-
-#ddm <- as.data.frame(rbind(ddm1,ddm2,ddm6,ddm7))
-#ddm <- ddm6
 
 #### NAME code: how to label output depending on strains being analysed
-#name_code <- "1_2_6_7_"
+#name_code <- "1_2_6_7_" # old example
 name_code <- "cut_"
 
 ###******* PLOTTING *************#######################################################################################################################################
-# To look at raw data
+# To look at raw data: commented out as only do once at the start
 
 # w0 <- which(ddm$drytime == 0)
 # w24 <- which(ddm$drytime == 24)
@@ -73,13 +60,13 @@ name_code <- "cut_"
 #   geom_line() + ggtitle("Raw data: t0")
 # ggsave("output/all_t0.pdf")
 # 
-# ggplot(ddm[w24,], aes(x=Time,y=value_J, group = interaction(rep, inoc), col = factor(inoc))) + 
-#   facet_wrap(~strain) + 
+# ggplot(ddm[w24,], aes(x=Time,y=value_J, group = interaction(rep, inoc), col = factor(inoc))) +
+#   facet_wrap(~strain) +
 #   geom_line() + ggtitle("Raw data: t24")
 # ggsave("output/all_t24.pdf")
 # 
-# ggplot(ddm[w168,], aes(x=Time,y=value_J, group = interaction(rep, inoc), col = factor(inoc))) + 
-#   facet_wrap(~strain) + 
+# ggplot(ddm[w168,], aes(x=Time,y=value_J, group = interaction(rep, inoc), col = factor(inoc))) +
+#   facet_wrap(~strain) +
 #   geom_line() + ggtitle("Raw data: t168")
 # ggsave("output/all_t168.pdf")
 
@@ -88,7 +75,6 @@ ddm$value_J = ddm$value
 
 ###******* MODEL FITTING *************#######################################################################################################################################
 ## Fit growth curves to each set of data to determine the underlying parameters 
-## Also those with odd behaviours are flagged here
 
 ## What are the strains?
 u <- as.character(unique(ddm$strain,stringsasFactors = FALSE)) # strains
@@ -97,21 +83,17 @@ r <- unique(ddm$rep) # replicates
 # What are the inoculums? 
 q <- unique(ddm$inoc)
 
-## Run thru each experiment (columns in original data) for each strain
-# Fit separately to each replicate as otherwise don't have enough data for later predictions
-# still having up to 3 experimental drytimes despite set2 not having 24hr data
 # Where the parameters for each strain are stored
 param <- matrix(0, length(u)*length(r)*length(q)*3, 19); # number of strains x number of replicates x number of experimental conditions
 index <- 1 # for counting 
 max <- c() # for calibration
-#p_double_curves <- c() # for storing the double curve plot data
-drying_times <- c(0,24,168)
+drying_times <- c(0,168)
 
 ## Run thru each strain/rep/drying time/ inoculum: fit a growth curve to each
 for(jj in 1:length(u)){ # for each strain
-  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1]
-  for(ii in 1:length(r)){ # for each replicate: fit to all the data, not just each replicate
-    for(kk in c(1,3)){ #each of the three experimental conditions (0, 24, 168): most just 0 168 now
+  r <- unique(ddm %>% filter(strain == u[jj]) %>% dplyr::select(rep))[,1] # which replicates for this strain (all have different names)
+  for(ii in 1:length(r)){ # for each replicate
+    for(kk in c(1,2)){ #each of the experimental conditions
       for(ll in 1:length(q)){ #each of the inocula
         
         strain <- u[jj];

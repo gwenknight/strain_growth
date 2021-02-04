@@ -48,7 +48,7 @@ ggsave("proof_of_principle/OD_data.pdf")
 
 ### Smooth OD values
 data_od <- data_od %>% group_by(rep, exp, variable, strain, inoc) %>%
-  mutate(ma_value = rollapply(value, 20, mean,fill = NA),
+  mutate(ma_value = rollapply(value, 10, mean,fill = NA),
          differ = c(0,diff(ma_value))) %>%
   ungroup()
 
