@@ -45,18 +45,20 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   max_level <- 0 # height of peak
   odd_double <- 0 # double curve fits this data
   
+  ## (1) Fit spline
   ## This gives lag time and exponential growth rate cumulative
   gc_fit <- gcFitSpline(ts[,Time], ts[,value])
   # parameters from this fit
   s <- summary(gc_fit)
   
-  ## What is the maximum heat flow and when?
+  ## (2) What is the maximum heat flow and when?
   wmax <- which.max( unlist(ts[,value])[-c(1:6)]) + 6 # take off funny initial behaviour < 2hr (take off in which.max and then add on 6 for position as taken 6 off)
   time_max_heat_flow <- as.numeric(ts[wmax,Time])
   value_max_heat_flow <- as.numeric(ts[wmax,value])
   
-  ## ODD 
-  # (1) Is the peak broad? 
+  ## ODD characteristic determination
+  ## (3) Looking at peaks
+  # Is the peak broad? 
   interval_peak <- time_max_heat_flow + c(-2.5, 2.5) # time interval around peak time
   interval_value <- as.numeric(unlist(ts[c( which(round(ts[,Time],4) == round(interval_peak[1],4)), which(round(ts[,Time],4) == round(interval_peak[2],4))),value]))
   
@@ -66,7 +68,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   # ODD? 
   if(max_level >= thresh_wide){odd_width <- 1}
   
-  # (2) Are there multiple peaks? 
+  # Are there multiple peaks? 
   # GIVES WHERE ALL PEAKS ARE (greater or equal to (m) 5 points around them)
   peaks_index = find_peaks(unlist(ts[,value]), m = 5)
   if(length(peaks_index) > 0){ # MAY BE NO PEAK
@@ -123,7 +125,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   }
   
   ###### SHOULDER
-  # (3) Is there a shoulder? 
+  # (4) Is there a shoulder? 
   # GIVES distance from line to curve post peak - if far from line then there is a "shoulder"
   # First, draw straight line from peak
   # endline = bottom of line near time zero
@@ -138,7 +140,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   grad = as.numeric((value_endline - value_startline)/(time_endline - time_startline)) # Gradient of line
   # Only want exponential growth line
   exp_start <- as.numeric(unlist(ts[which.min(unlist(abs(ts[,Time]-s$lambda.spline))),Time]))
-  time_step = median(diff(ts$Time)) ## should be constant but some have varaition so take normal step size, but should be constant to work in the below
+  time_step = median(diff(ts$Time)) ## should be constant but some have variation so take normal step size, but should be constant to work in the below
   times_line <- seq(time_startline,exp_start,by = -time_step) # The times for the line (x values)
   
   
@@ -241,8 +243,9 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
                  odd_peak, odd_width, max_level, odd_shoulder, odd_double, shoulder_point, shoulder_point_v)
   
   #print(param_o)  
-  ####******************************************* This is the first analysis. *******************************************
-  # Now cut at shoulder or first peak
+  
+  
+  # (5) Now cut at shoulder or first peak
   if(shoulder_point > 0){
     cut_point_t <- shoulder_point; cut_point_v <- shoulder_point_v}else{
       cut_point_t <- time_max_heat_flow; cut_point_v <- value_max_heat_flow;
@@ -260,7 +263,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   timepeak = cut_point_t
   valpeak = cut_point_v[1]
   
-  ## What if there is a peak in this?
+  ## (6) What if there is a peak in this?
   peaks_index = find_peaks(ts[,value], m = 3)
   
   ## If there is a peak then reassign peak 
@@ -279,7 +282,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   # Reassign up to peak 
   ts = ts[which(ts[,Time] <= as.numeric(timepeak)),]
   
-  ### Check if the slope changes substantially in this period: may be a shoulder or a plateau near peak 
+  ### (7) Check if the slope changes substantially in this period: may be a shoulder or a plateau near peak 
   if(dim(ts)[1]>4){ # If enough data
     st <- c()
     
@@ -341,8 +344,8 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   
   tstopeak = ts[which(ts[,Time] <= as.numeric(timepeak)),c(Time,value)]
   
-  ## Growth Curve # (see fig 3 of vv33i07.pdf)
-  ## This gives lag time and exponential growth rate cumulative
+  ## (8) Growth Curve 
+  ## This gives lag time and exponential growth rate 
   gc_fit <- gcFitSpline(tstopeak[,Time], tstopeak[,value])
   # parameters from this fit
   s <- summary(gc_fit)

@@ -3,7 +3,10 @@
 library(tidyverse)
 library(patchwork)
 theme_set(theme_bw(base_size = 11))
+### Code for linear model 
 source("code/function_linear_model.R")
+
+
 dir.create(paste0("plots/fit"), showWarnings = FALSE)
 dir.create(paste0("plots/output_fit"), showWarnings = FALSE)
 
@@ -32,13 +35,13 @@ pp_strain_names <- param %>%
   mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
   ungroup() %>%
   mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
-  group_by(strain) %>%
+  group_by(strain_name) %>%
   mutate(remove_strain = ifelse(n_distinct(keep_rep) > 2,0,1))
 
 ## e.g.
 eg <- pp_strain_names %>% 
-  select(strain, rep, inoc, drytime, cut_exp, mean_peak_exp_gr, outside, perc_outside, rep_dt_remove, total_rep_rem, keep_rep, remove_strain, t_m_h_flow) %>% 
-  filter(strain == 11016)
+  select(strain_name, rep, inoc, drytime, cut_exp, mean_peak_exp_gr, outside, perc_outside, rep_dt_remove, total_rep_rem, keep_rep, remove_strain, t_m_h_flow) %>% 
+  filter(strain_name == 11016)
 
 ggplot(eg, aes(x=inoc, y = t_m_h_flow)) + geom_point(aes(col = factor(drytime))) + facet_wrap(~rep)
 
@@ -172,7 +175,7 @@ ggsave(paste0("plots/fit/diff_in_time_to_peak_mean.pdf"))
 reps <- unique(param_expok$rep)
 strains <- unique(param_expok$strain_name)
 
-ggplot(param_expok, aes(x=cut_timepeak,y = log10(scalar), group = strain_name, colour=factor(drytime))) + 
+ggplot(param_expok, aes(x=timepeak,y = log10(scalar), group = strain_name, colour=factor(drytime))) + 
   geom_point(size = 3) + facet_wrap(~strain_name) + 
   scale_y_continuous("Log(inoculum)") + scale_x_continuous("Time to max heat flow (h)") + 
   scale_color_discrete("Experiment", labels = c("Baseline","168hr drying")) 
@@ -186,7 +189,7 @@ if(length(w26) > 0){param_expok <- param_expok[-w26,]}
 # If r^2 over 8 then good
 r2_threshold = 0.75
 
-reductions_fit <- fit_line_model(reps, strains, param_expok, "cut_timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+reductions_fit <- fit_line_model(reps, strains, param_expok, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
 
 # ### Check fits
 ggplot(reductions_fit$fit, aes(x=strain, y = R2)) +
@@ -199,7 +202,7 @@ ggplot(reductions_fit$fit, aes(x=R2)) + geom_histogram(binwidth = 0.02) +
 ggsave("plots/fit/cutoff_for_r2.pdf") # only get this if set R_cut = 0 in above?
 
 fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
-  select(strain) %>% unlist() %>% as.character() %>% unique()# but not all the replicates for these strains
+  dplyr::select(strain) %>% unlist() %>% as.character() %>% unique()# but not all the replicates for these strains
 
 length(unique(param_expok$strain_name)) # 88 into the function
 length(unique(reductions_fit$fit$strain)) # 88 Not filtered on R2

@@ -48,74 +48,19 @@ strains <- unique(param$strain_name)
 reps <- unique(param$rep)
 drytimes <- unique(param$drytime)
 
-### Code for linear model 
-source("code/function_linear_model.R")
-
-#####*************************** FILTERED plot - only the clean data *******************###############
-all_strains = unique(param$strain)
-
-cols = c(1,brewer.pal(n = 8, name = "Set1"))
-dir.create(file.path(here(), "plots/final_data_split_highlighted/"),showWarnings = FALSE)
-
-for(jj in 1:length(all_strains)){ # for each strain
-  
-  # Wnat to keep the unique combinatino of replicate and dataset that are clean
-  clean = param #%>% filter(removed_rep == 0, removed_dataset == 0, strain_name == all_strains[jj])
-  
-  ddm_strain <- ddm %>% filter(strain == all_strains[jj])
-  ddm_orig_s <- ddm_orig %>% filter(strain == all_strains[jj])
-  
-  wc <- c()
-  for(i in 1:length(clean[,1])){
-    w1 <- intersect(which(ddm_strain$rep == clean[i,"rep"]),which(ddm_strain$inoc == clean[i,"inocl"]))
-    wc<-c(wc,intersect(w1,which(ddm_strain$drytime == clean[i,"drytime"])))
-  }
-  
-  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time < shoulder_point_t)
-  dd$odd_type <- as.character(dd$odd_type)
-  ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
-  
-  ggplot(dd, aes(x=Time, y = value_J)) + 
-    geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc)), lwd = 1) + 
-    facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
-    scale_color_manual("Odd_type", breaks = c("0","1","2","3","12","13","23","123"), 
-                       labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
-                                  "Width&Shoulder","Peak Width&Shoulder"),
-                       values = cols, drop = FALSE) + 
-    scale_linetype_discrete("Inoc.") + 
-    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
-    geom_point(aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
-    geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
-    ggtitle(all_strains[jj])
-    
-  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here
-}
-
-
-#################**************** CHECK EXPONENTIAL GROWTH *******************###############
-param_clean <- param #%>% filter(removed_rep == 0, removed_dataset == 0) ### COULD FILTER ON BEHAVIOUR PAST PEAK 
-dir.create(file.path(here(), "plots/exp_growth/"),showWarnings = FALSE)
-
-# Look at the distribution of exponential growth for typical strains
-for(i in unique(param_clean$strain_name)){
-  pa <- param_clean %>% filter(strain_name == i)
-  g1 <- ggplot(pa, aes(x=rep, y = cut_exp, group = rep)) + geom_boxplot() + ggtitle(paste0(i," all"))+ scale_x_continuous("Replicate") + scale_y_continuous("Exponential growth") 
-  
-  g2 <- ggplot(pa, aes(x=rep, y = cut_exp, group = interaction(rep,drytime))) + geom_boxplot(aes(col = factor(drytime))) + ggtitle(paste0("Split by drying time")) + 
-    scale_color_discrete("Dry time") + scale_x_continuous("Replicate") + scale_y_continuous("Exponential growth") + 
-    theme(legend.position="bottom")
-  
-  g1 + g2 + plot_layout(widths = c(1, 2)) 
-  ggsave(paste0("plots/exp_growth/",i,".pdf"))
-}
-
-po <- param_clean %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = min(rep), 
+po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = min(rep), 
                                                        ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
   mutate(rep_st = case_when((ones == 1) ~ 1,
                             (threes == 1)  ~ 3,
                             (twos == 1) ~ 2)) # tries pmax etc didn't work # Labels reps as 1 2 3
 
 write.csv(po, "output/param_labelled_repst.csv")
+
+
+
+
+
+
 
 ##### Diagnostic / exploring plots
 ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) +

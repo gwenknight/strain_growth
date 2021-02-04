@@ -101,8 +101,7 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
           if(length(w3b) > 0 ){ g5 <- g5 + geom_point(data = ddb, aes_string(x=var, y = "pred_i_ten"), col="red",size = 3)}
           
           g6 <- ggplot(ddc, aes_string(x= var, y = "scalar")) + geom_point(size = 3) + 
-            geom_line(data = pred, aes(x=xx, y = 10^yy), col = "blue") + 
-            geom_point(data = ddb, aes_string(x=var, y = "pred_i_ten"), col="blue",size = 3) + 
+            geom_line(data = pred, aes(x=xx, y = 10^yy), col = "blue") +
             scale_y_continuous("Inoculum", limits = c(0.001,120000)) + scale_x_continuous(var_name,limits = c(3,15)) +
             ggtitle("After 168hr drying:\nblack = data (orig inoc vs new time to max heat)\nblue = linear model prediction of inoc given this time to peak")
           if(length(w3b) > 0 ){ g6 <- g6 + geom_point(data = ddb, aes(x=var, y = 10^pred_inoc), col="red",size = 3)}
