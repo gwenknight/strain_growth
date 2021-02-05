@@ -17,7 +17,7 @@ library(here)
 theme_set(theme_bw(base_size=6)) # theme setting for plots: black and white (bw) and font size (24)
 mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(14)
 
-setwd(here:here())
+setwd(here::here())
 
 ## Load in grofit functions if package no longer working
 source("code/grofit_functions.R") # have copied those we use into this R script
@@ -39,7 +39,8 @@ ddm10 <- as.data.table(read.csv("data/ddm_set10.csv")[,-1])
 ddm11 <- as.data.table(read.csv("data/ddm_set11.csv")[,-1])
 ddm12 <- as.data.table(read.csv("data/ddm_set12.csv")[,-1])
 ddm13 <- as.data.table(read.csv("data/ddm_set13.csv")[,-1])
-ddm <- as.data.frame(rbind(ddm1,ddm2,ddm3,ddm4,ddm5,ddm6,ddm7,ddm8,ddm9,ddm10,ddm11,ddm12,ddm13) )
+ddm14 <- as.data.table(read.csv("data/ddm_set14.csv")[,-1])
+ddm <- as.data.frame(rbind(ddm1,ddm2,ddm3,ddm4,ddm5,ddm6,ddm7,ddm8,ddm9,ddm10,ddm11,ddm12,ddm13,ddm14) )
 
 length(unique(ddm$strain)) # 98 in sets 1-13
 
@@ -108,6 +109,7 @@ for(jj in 1:length(u)){ # for each strain
         if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
           data1 <- ddm[w,] # Grab data
           
+          print(c(strain, replicate, condition, inocl)) # output so can track how it is working
           p <- cut_extract(data1, "Time", "value_J", paste(strain, replicate, condition, inocl,sep="_")) ### NEW function: runs on any timeseries: gives baseline and cut parameter analysis
           
           ## Required parameters
@@ -176,6 +178,7 @@ for(jj in 1:length(u)){ # for each strain
       oddv <- ii[w3]
       
       ddm[oddv,"odd_type"] <- pp[w[ww],"odd_type"] # label as odd across timeseries
+      ddm[oddv,"odd_type_db"] <- pp[w[ww],"odd_type_db"] # label as odd across timeseries
       
     }
   }
@@ -203,10 +206,18 @@ for(jj in 1:length(u)){ # for each strain
   }
   
   
+  
+  
 }
 
 ddm$odd_type <- factor(ddm$odd_type, levels = c("0","01","02","03","012","013","023","0123"))
-ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","01","02","03","04","012","013","014","0134","034","023","0123","0124","01234"))
+ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","01","02","03","04","012","013","014","0134","034","023","024","0123","0124","01234"))
+
+#### Label MACOTRA vs. not
+ddm$source <- "Macotra"
+w<-which(ddm$strain %in% c("Newman","RWW12","SA3297","SA2704","RWW146","SAC042W", "Mu50", "M116"))
+ddm[w,"source"] <- "Other"
 
 ##### Save output 
 write.csv(ddm,paste0("output/",name_code,"all_time_series_fit_params.csv"))
+

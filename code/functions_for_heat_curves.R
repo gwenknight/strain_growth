@@ -29,14 +29,15 @@ find_peaks <- function (x, m = 3){
 ### Output: time series data up to cut point: time of end of exponential growth
 ### Output: lag time / exponential growth / time of end of exponential growth 
 
-cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0, plot_where = "plots/"){
+cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0, plot_where = "plots/", early_cut = 3){
   ## ts = timeseries
   ## Time = name of time column
   ## value = name of value column
   ## name4output = strain, replicate, condition, inocl = labels for output
+  ## thresh_wide = 90: % what is a wide peak? 
   ## plot = 0:  don't plot. 1 to plot
-  ## thresh_wide = 80: % what is a wide peak? 
-  
+  ## plot_where: location for files to output to  
+  ## early_cut: for heat flow, remove the first 3hrs of data 
   
   ## is this strain replicate ODD? Set all ODD indicators to zero initially
   odd_peak <- 0 # 0 = one peak
@@ -217,6 +218,46 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     }
   }
   
+  
+  ##### (5) Double curves? Only use to count how many have this - fit not explored here
+  x <- ts[,Time]
+  y <- ts[,value]
+  
+  # Guesses for the parameters in the curve
+  startl=list(a=unlist(ts[peaks_index,value])[1]*1.5, 
+              b=diff(interval_peak)/3, 
+              c=unlist(ts[peaks_index,Time])[1],
+              d=unlist(ts[peaks_index,value])[1]*1.5, 
+              e=diff(interval_peak), 
+              f=unlist(ts[peaks_index,Time])[1])
+  # Set indicator/output parameters to zero
+  fit1 <- 0
+  plot_p <- 0
+  p <- 0
+  # Try to fit two normal curves using non-linear least squares methods 
+  try(fit1 <- nls(y~(a/b)*exp(-(x-c)^2/(2*b^2))+(d/e)*exp(-(x-f)^2/(2*e^2)),start = startl), silent = TRUE)
+  
+  # If manage to fit
+  if(length(fit1) > 1){
+    # print that can 
+    #print(paste("Double curve fit", name4output,sep = " "))
+    odd_double <- 1
+    # Save the predictions of the fit 
+    pred_p <- predict(fit1)
+    # Save the coefficients of the fit
+    p <- coef(fit1)
+    # Pull out the actual curves using the parameters in p
+    g1p <- (p["a"]/p["b"])*exp(-(x-p["c"])^2/(2*p["b"]^2)) 
+    g2p <- (p["d"]/p["e"])*exp(-(x-p["f"])^2/(2*p["e"]^2))
+    # Store the curves
+    plot_p <- as.data.frame(cbind(x,y,pred_p, g1p, g2p))
+    colnames(plot_p) <- c("time","value","fit","normal_curve1","normal_curve2")
+    # Store the parameters
+    plot_p$a <- p["a"]; plot_p$b <- p["b"]; plot_p$c <- p["c"]
+    plot_p$d <- p["d"]; plot_p$e <- p["e"]; plot_p$f <- p["f"]
+  }
+  
+  
  
   ## Plot ts, cumulative and fit
   # if functions takes in a command to plot
@@ -245,7 +286,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   #print(param_o)  
   
   
-  # (5) Now cut at shoulder or first peak
+  # (6) Now cut at shoulder or first peak
   if(shoulder_point > 0){
     cut_point_t <- shoulder_point; cut_point_v <- shoulder_point_v}else{
       cut_point_t <- time_max_heat_flow; cut_point_v <- value_max_heat_flow;
@@ -253,7 +294,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   
   # NEW TS: cut up to first peak or shoulder 
   ts <- ts %>% 
-    filter(Time > 3) %>% # cut off first 3hrs 
+    filter(Time > early_cut) %>% # cut off first 3hrs 
     mutate(cutpart = ifelse(Time <= cut_point_t,1,0)) %>%
     filter(cutpart == 1) # Trim off extra parts
   
@@ -263,7 +304,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   timepeak = cut_point_t
   valpeak = cut_point_v[1]
   
-  ## (6) What if there is a peak in this?
+  ## (7) What if there is a peak in this?
   peaks_index = find_peaks(ts[,value], m = 3)
   
   ## If there is a peak then reassign peak 
@@ -282,7 +323,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   # Reassign up to peak 
   ts = ts[which(ts[,Time] <= as.numeric(timepeak)),]
   
-  ### (7) Check if the slope changes substantially in this period: may be a shoulder or a plateau near peak 
+  ### (8) Check if the slope changes substantially in this period: may be a shoulder or a plateau near peak 
   if(dim(ts)[1]>4){ # If enough data
     st <- c()
     
@@ -344,8 +385,8 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   
   tstopeak = ts[which(ts[,Time] <= as.numeric(timepeak)),c(Time,value)]
   
-  ## (8) Growth Curve 
-  ## This gives lag time and exponential growth rate 
+  ## (9) Growth Curve 
+  ## Ths gives lag time and exponential growth rate 
   gc_fit <- gcFitSpline(tstopeak[,Time], tstopeak[,value])
   # parameters from this fit
   s <- summary(gc_fit)

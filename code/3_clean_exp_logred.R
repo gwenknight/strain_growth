@@ -3,16 +3,10 @@
 # (1) Get the parameter sets from 2_analysis.R 
 
 # (2) Clean datasets: 
-### How many odd datasets in a drytime for a single rep? 
-##### If < 50% of datasets in a rep at a drytime are odd then remove just this dataset
-##### If > 50% of datasets are odd in one drytime then label the rep as odd
-### How many odd replicates are there for a strain?
-##### If more than one replicate is odd then strain is odd
-##### If only one then remove the replicate from the strain
-### > NOW just label for "removal" but as only use up to peak OK to keep in
+## Remove those with exponential growth outside the set range (see 3_exponential_growth_variation.R)
 
-# (3) Check exponential growth 
-### Should be same across replicate
+# (3) Predict inoculum reduction 
+
 
 #################**************** (1) Libraries, data and code needed *******************###############
 library(tidyverse) 
@@ -20,13 +14,18 @@ library(matrixStats) # for row sd calculations
 library(Matrix) # for nnzero function
 library(ggplot2)
 library(patchwork) # for combining plots
-theme_set(theme_bw(base_size=24)) # theme setting for plots: black and white (bw) and font size (24)
+theme_set(theme_bw(base_size=14)) # theme setting for plots: black and white (bw) and font size (24)
 
-setwd(here:here())
+setwd(here::here())
+
+source("code/function_linear_model.R")
 
 #####*************************** READ IN DATA *******************###############
-ddm <- read.csv("output/cut_all_time_series_fit_params.csv")[,-1]
-param <- read.csv("output/cut_all_model_fit_params.csv")[,-1]
+ddm_orig <- read.csv("output/cut_all_time_series_fit_params.csv")[,-1]
+ddm <- ddm_orig %>% filter(source == "Macotra")
+
+param_orig <- read.csv("output/cut_all_model_fit_params.csv")[,-1]
+param <- param_orig %>% filter(strain_name %in% unique(ddm$strain))
 
 # Change from inoc to scalar
 # scalar = 1 at 10^6, 1/10th of each next dilution
@@ -48,6 +47,7 @@ strains <- unique(param$strain_name)
 reps <- unique(param$rep)
 drytimes <- unique(param$drytime)
 
+# Change replicates from within experiment given names to replicate 1 to 3 for all 
 po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = min(rep), 
                                                        ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
   mutate(rep_st = case_when((ones == 1) ~ 1,
@@ -56,135 +56,615 @@ po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = 
 
 write.csv(po, "output/param_labelled_repst.csv")
 
+#####*************************** REMOVE THOSE WITH EXPONENTIAL GROWTH OUTSIDE OF RANGE *******************###############
+cutoff <- 0.34
+
+pp_strain_names <- param %>%
+  group_by(strain_name, rep) %>% 
+  mutate(mean_peak_exp_gr = mean(cut_exp),
+         mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
+         mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
+         outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0)) %>%
+  ungroup() %>% 
+  group_by(strain_name, rep,drytime) %>% 
+  mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
+  ungroup() %>% 
+  group_by(strain_name, rep) %>% 
+  mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
+  ungroup() %>%
+  mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
+  group_by(strain_name) %>%
+  mutate(remove_strain = ifelse(n_distinct(keep_rep) > 2,0,1))
+
+#### Remove those with exponential values outside the above range
+param_expok <- pp_strain_names %>%
+  filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
+  filter(total_rep_rem == 0) # remove those reps with more than 2 outside
+
+length(which(pp_strain_names$remove_strain == 1)) # 167 datasets removed due to strain being removed
+length(which(pp_strain_names$total_rep_rem == 1)) # 4 single reps removed from strains
+
+dim(pp_strain_names)[1] - dim(param_expok)[1]
+
+
+
+length(unique(param_expok$strain_name)) # New with 10% of strain removed
+length(unique(param$strain_name)) # Original total
+
+setdiff(unique(param$strain_name),unique(param_expok$strain_name))
+# Only 10 strains removed: we can't use these are their exponential growth is too variable
+
+strains_typical = unique(param_expok$strain_name) # PERFECT strains
+
+#####*************************** FILTERED plot - only the clean data *******************###############
+all_strains = unique(param$strain)
+
+## Add in label for odd exponential growth
+param[which(!param$strain_name %in% strains_typical),"odd_type_db"] <- paste0(param[which(!param$strain_name %in% strains_typical),"odd_type_db"],"5")
+ddm[which(!ddm$strain %in% strains_typical),"odd_type_db"] <- paste0(ddm[which(!ddm$strain %in% strains_typical),"odd_type_db"],"5")
+
+cols = c(1,brewer.pal(n = 11, name = "Set3"))
+dir.create(file.path(here(), "plots/final_data_split_highlighted/"),showWarnings = FALSE)
+
+for(jj in 1:length(all_strains)){ # for each strain
+  
+  # Want to keep the unique combination of replicate and dataset that are clean
+  clean = param #%>% filter(removed_rep == 0, removed_dataset == 0, strain_name == all_strains[jj])
+  
+  ddm_strain <- ddm %>% filter(strain == all_strains[jj])
+  ddm_orig_s <- ddm_orig %>% filter(strain == all_strains[jj])
+  
+  wc <- c()
+  for(i in 1:length(clean[,1])){
+    w1 <- intersect(which(ddm_strain$rep == clean[i,"rep"]),which(ddm_strain$inoc == clean[i,"inocl"]))
+    wc<-c(wc,intersect(w1,which(ddm_strain$drytime == clean[i,"drytime"])))
+  }
+  
+  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time < shoulder_point_t)
+  dd$odd_type <- as.character(dd$odd_type)
+  ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
+  dd$odd_type_db <- as.character(dd$odd_type_db)
+  ddm_orig_s$odd_type_db <- as.character(ddm_orig_s$odd_type_db)
+  
+  ggplot(dd, aes(x=Time, y = value_J)) + 
+    geom_line(aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), lwd = 2) + 
+    facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
+    scale_color_manual("Odd_type", 
+                       breaks = c("0","14","24","34","124","134","05",
+                                              "145","245"),
+                       labels = c("None","Peak&Double",
+                                  "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","ExpGr",
+                                  "Peak Shoulder&ExpGr","Width Shoulder&ExpGr"),
+                       #breaks = c("0","1","2","3","4","5",
+                      #                        "12","13","23","123","14",
+                      #                        "24","34","124","134","234",
+                      #                        "1234","05",
+                      #                        "15","25","35","45",
+                      #                        "145","245","345"), 
+                      #                        "1235","235","1235","135",
+                      # labels = c("None","Peak","Width","Shoulder","Double","ExpGr",
+                      #            "Peak&Width","Peak&Shoulder","Width&Shoulder","Peak Width&Shoulder","Peak&Double",
+                      #            "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","Width Shoulder&Double",
+                      #            "Peak Width Shoulder&Double","ExpGr",
+                      #            "Peak&ExpGr","Width&ExpGr","Shoulder&ExpGr","Double&ExpGr",
+                      #            "Peak Width Shoulder&ExpGr","Width Shoulder&ExpGr","Peak Width Shoulder&ExpGr","Peak Shoulder&ExpGr",
+                      #            "Peak Double&ExpGr","Width Double&ExpGr","Shoulder Double ExpGr"),
+                       values = cols, drop = FALSE) + 
+    scale_linetype_discrete("Inoc.") + 
+    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
+    geom_point(aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+    geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+    ggtitle(all_strains[jj])
+  
+  # ggplot(dd, aes(x=Time, y = value_J)) + 
+  #   geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc)), lwd = 1) + 
+  #   facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
+  #   scale_color_manual("Odd_type", breaks = c("0","1","2","3","12","13","23","123"), 
+  #                      labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
+  #                                 "Width&Shoulder","Peak Width&Shoulder"),
+  #                      values = cols, drop = FALSE) + 
+  #   scale_linetype_discrete("Inoc.") + 
+  #   geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
+  #   geom_point(aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+  #   geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+  #   ggtitle(all_strains[jj])
+  
+  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here
+}
+
+
+
+######****************************######################################################################
+######****************************######################################################################
+######****************************######################################################################
+#######****** LINEAR MODEL 
+######****************************######################################################################
+
+# What strains have all / some data?
+table(table(pp_strain_names$strain_name)) # Original data 
+table(table(param_expok$strain_name)) # After exponential filtering
+
+######****** Predicting **********######################################################################
+ggplot(po, aes(y=inocl,x = timepeak, group = strain_name, colour=factor(rep_st))) + 
+  geom_point(size = 2) + facet_wrap(~strain_name) + 
+  scale_x_continuous("Time to peak") + scale_y_continuous("Inoculum size (10^x)") + 
+  scale_color_discrete("Experiment") 
+ggsave(paste0("plots/fit/time_to_peak_all.pdf"), width = 16, height =10 )
+
+### PLOT variation in other indicators
+#ggplot(param_typical, aes(y=inocl,x = v_m_h_flow, group = strain_name,colour=rep)) + geom_point() + facet_wrap(~strain_name)
+#ggplot(param_typical, aes(y=inocl,x = lag, group = strain_name,colour=rep)) + geom_point() + facet_wrap(~strain_name)
+#ggplot(param_typical, aes(y=inocl,x = exp_gr, group = strain_name,colour=rep)) + geom_point() + facet_wrap(~strain_name)
+#ggplot(param_typical, aes(y=inocl,x = auc, group = strain_name,colour=rep)) + geom_point() + facet_wrap(~strain_name)
+
+######****** Linear model **********######################################################################
+# Do for each rep, for each strain_name
+reps <- unique(param_expok$rep)
+strains <- unique(param_expok$strain_name)
+
+ggplot(param_expok, aes(x=timepeak,y = log10(scalar), group = strain_name, colour=factor(drytime))) + 
+  geom_point(size = 3) + facet_wrap(~strain_name) + 
+  scale_y_continuous("Log(inoculum)") + scale_x_continuous("Time to max heat flow (h)") + 
+  scale_color_discrete("Experiment", labels = c("Baseline","168hr drying")) 
+ggsave(paste0("plots/fit/time_to_peak_all_as_linear_model.pdf"), width = 20, height = 20)
+
+#### Fit linear model 
+# Remove 10^2 and 10^6: not for reduction analysis
+w26<-c(which(param_expok$inocl == 2), which(param_expok$inocl == 6))
+if(length(w26) > 0){param_expok <- param_expok[-w26,]}
+
+# If r^2 over 8 then good
+r2_threshold = 0.75
+
+# MODEL FIT
+reductions_fit <- fit_line_model(reps, strains, param_expok, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+
+# ### Check fits
+reductions_fit$fit$R2 <- as.numeric(reductions_fit$fit$R2)
+ggplot(reductions_fit$fit, aes(x=strain, y = R2)) +
+  geom_point() +
+  ggtitle("R2 value for fit of linear model to inoculum size = a*time_to_peak + b")
+
+ggplot(reductions_fit$fit, aes(x=R2)) + geom_histogram(binwidth = 0.02) +
+  geom_vline(xintercept = 0.9) + 
+  geom_vline(xintercept = 0.75, lty = "dashed") 
+ggsave("plots/fit/cutoff_for_r2.pdf", width = 10, height = 10) # only get this if set R_cut = 0 in above?
+
+fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
+  dplyr::select(strain) %>% unlist() %>% as.character() %>% unique()# but not all the replicates for these strains
+
+dim(reductions_fit$fit)
+dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
+250-234
+
+
+length(unique(param_expok$strain_name)) # 88 into the function
+length(unique(reductions_fit$fit$strain)) # 88 Not filtered on R2
+length(fitted_strains) # 86 Filtered on R2
+
+setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))
+setdiff(unique(reductions_fit$fit$strain),fitted_strains)
+
+
+
+######## Over all strains
+# in reductions. Meas column key: 
+# meas = 1 = log reduction 
+# meas = 2 = percentage reduction 
+# meas = 3 = inoculum
+# meas = 4 = predicted inoculum
+
+#### Average
+# Take the average over all values
+reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
+  ungroup() %>% 
+  summarise(mean(mean)) 
+
+# Take the average by inoculum 
+reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
+  ungroup() %>% 
+  pivot_longer(`10^3`:`10^5`) %>% 
+  group_by(name) %>% 
+  summarise(mean(value, na.rm = TRUE), sd(value, na.rm = TRUE))
+
+
+ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x=ticker, y = mean, fill = factor(ticker))) + 
+  geom_bar(stat = "identity", position=position_dodge(2)) + 
+  facet_wrap(~strain_name, nrow = 10) + scale_y_continuous("Log reduction") + 
+  scale_x_discrete("Replicate") + 
+  scale_fill_discrete("Replicate") + 
+  geom_errorbar(aes(ymax = mean + sd, ymin = pmax(0,mean - sd)),position = "dodge")
+ggsave(paste0("plots/fit/log_reductions_byrep.pdf"), width = 15, height = 10)
+
+# Average over all strains by replicate
+av_all_rep <- reductions_fit$reductions %>%
+  filter(meas == 1, strain_name %in% fitted_strains) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(ticker) %>%
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+ggplot(av_all_rep, aes(x=ticker, y = mean)) + geom_bar(stat = "identity") + 
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd)) + 
+  scale_x_continuous("Replicate") + 
+  scale_y_continuous("Log reduction")
+ggsave(paste0("plots/fit/log_reductions_by_rep_sd.pdf"))
+
+ggplot(reductions_fit$reductions %>%
+         filter(meas == 1, strain_name %in% fitted_strains) %>%
+         pivot_longer(cols = c('10^3':'10^5')), aes( x= ticker, y = value, col = name)) + 
+  geom_jitter() + 
+  scale_x_continuous("Replicate") + 
+  scale_y_continuous("Log reduction")
+ggsave(paste0("plots/fit/all_log_reductions_by_rep_sd.pdf"))
+
+## Similar to reductions_fit$av_for_strain except for sd calc
+reductions_fit$reductions %>% filter(meas == 1) %>% group_by(strain_name, dry) %>% 
+  summarise(mean_over_rep = mean(mean), sd_over_rep = sd(mean)) %>%
+  ggplot(aes(x=strain_name, y = mean_over_rep, fill = strain_name)) + 
+  geom_bar(stat = "identity", position=position_dodge(2)) + 
+  facet_grid(~dry) + scale_y_continuous("Log reduction") + 
+  scale_x_discrete("Strain") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  scale_fill_discrete("Strain") + 
+  geom_errorbar(aes(ymax = mean_over_rep + sd_over_rep, ymin = mean_over_rep - sd_over_rep),position = "dodge")
+ggsave(paste0("plots/fit/log_reductions_mean_by_drytime.pdf"), width = 20, height = 10)
+
+ggplot(subset(reductions_fit$reductions, meas == 2), aes(x=ticker, y = mean, fill = factor(ticker))) + 
+  geom_bar(stat = "identity", position=position_dodge(2)) + 
+  facet_grid(dry~strain_name) + scale_y_continuous("Percentage reduction") + 
+  scale_x_discrete("Replicate") + 
+  scale_fill_discrete("Replicate") + 
+  geom_errorbar(aes(ymax = mean + sd, ymin = mean - sd),position = "dodge")
+ggsave(paste0("plots/fit/",name_code,"perc_reductions.pdf"))
 
 
 
 
+# By inoculum 
+ggplot(reductions_fit$av_for_inoculum, aes(x = name, y = mean_inoc)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  facet_wrap(~strain_name, scales = "free") + 
+  geom_hline(yintercept = 1, lty = "dashed") + 
+  geom_hline(yintercept = 3, lty = "dashed") + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Log reduction by inoculum")
+ggsave(paste0("plots/fit/log_reduction_by_inoc.pdf"))
+
+ggplot(reductions_fit$av_for_inoculum, aes(x = name, y = mean_inoc)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  facet_wrap(~strain_name) + 
+  geom_hline(yintercept = 1, lty = "dashed") + 
+  geom_hline(yintercept = 3, lty = "dashed") + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Log reduction by inoculum")
+ggsave(paste0("plots/fit/log_reduction_by_inoc_fixed_scales.pdf"))
 
 
-##### Diagnostic / exploring plots
-ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) +
-  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-  scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/exp_growth_across_replicates.pdf")
+# Average over all strains by inoculum
+av_all <- reductions_fit$reductions %>%
+  filter(meas == 1, strain_name %in% fitted_strains) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name) %>%
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
 
-ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-  scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/exp_growth_across_inocl_bp.pdf")
+ggplot(av_all, aes(x=name, y = mean)) + geom_bar(stat = "identity") + 
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd))
 
-ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
-  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-  scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/exp_growth_across_inocl_bpgrp.pdf")
+av_inoc_t <- reductions_fit$reductions %>%
+  filter(meas == 1, strain_name %in% fitted_strains) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name) %>%
+  filter(!is.na(value))
 
-ggplot(po, aes(x=inocl, y = cut_exp,aes(group = drytime))) + geom_point() +  
-  geom_smooth(method = "loess") +  #, #, formula = y ~ a * x + b,method.args = list(start = list(a = 0.1, b = 0.1))) + 
-  facet_wrap(~drytime) + 
-  scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-  scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/exp_growth_across_inocl_pointsline.pdf")
-
-ggplot(po, aes(x=rep_st, y = t_m_h_flow, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-  scale_y_continuous("Time to peak") + 
-  scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/time_to_peak_across_replicates.pdf")
-
-ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
-  scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
-  scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/across_replicates_zoom.pdf")
-
-ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
-  geom_jitter(width = 0.1,aes(col = factor(drytime))) + 
-  facet_wrap(~strain_name, scales = "free_x") + 
-  scale_y_continuous("Exponential growth") + 
-  scale_x_discrete("Replicate/Strain") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
-ggsave("plots/exp_growth/across_replicates_zoom_strain_rep.pdf",width = 30, height = 30)
-
-ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
-  geom_jitter(width = 0.1,aes(col = factor(inocl), pch = factor(drytime))) + 
-  facet_wrap(~strain_name, scales = "free_x") + 
-  scale_y_continuous("Exponential growth") + 
-  scale_x_discrete("Replicate/Strain") +   
-  scale_shape_discrete("Dry time") + 
-  scale_color_manual("Inoculum", values = c("red","black","turquoise")) + 
-  theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
-ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inocl.pdf",width = 30, height = 30)
-
-ggplot(po, aes(x=interaction(inocl, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
-  geom_jitter(width = 0.1,aes(col = factor(inocl), pch = factor(drytime))) + 
-  facet_wrap(~strain_name, scales = "free_x") + 
-  scale_y_continuous("Exponential growth") + 
-  scale_x_discrete("Inoculum/Strain") +   
-  scale_shape_discrete("Dry time") + 
-  scale_color_manual("Inoculum", values = c("red","black","turquoise")) + 
-  theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
-ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inoclgrp.pdf",width = 30, height = 30)
+res.aov <- aov(value ~ name, data = av_inoc_t)
+# Summary of the analysis
+summary(res.aov) # Significant
 
 
-ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
-  scale_y_continuous("exponential growth") + 
-  scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/across_replicates_all.pdf")
+ggplot(av_all, aes(x=name, y = mean)) + geom_bar(stat = "identity") + 
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se)) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_x_discrete("Inoculum") 
+ggsave(paste0("plots/fit/log_reduction_by_inoc_average.pdf"))
 
-ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
-  scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
-  scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-  theme(legend.position="bottom")
-ggsave("plots/exp_growth/group_replicates.pdf")
+## Ignoring inoculum - all strain
+av_all_noin <- reductions_fit$reductions %>%
+  filter(meas == 1, strain_name %in% fitted_strains) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  filter(!is.na(value)) %>% ungroup() %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
 
-ggplot(po %>% filter(drytime == 0), aes(x=inocl, y = cut_exp, group = interaction(rep,strain))) + 
-  geom_line(aes(col = strain))
+av_all_noin
 
-#### Normalised start
-ddm <-ddm %>% group_by(strain,rep, inoc, drytime) %>% dplyr::mutate(initial = first(value_J), value_J_norm = value_J - initial)
-ggplot(ddm, aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytime))) + 
-  geom_line(aes(col = factor(drytime))) + facet_wrap(~strain)
-ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
+## Success? 
+#succ <- read.csv("data/success_yn.csv")
+succ <- read.csv("data/MACOTRA 100collection success_20210121.csv")
+succ$strain_name <- as.character(succ$strain)
+
+succ_go <- left_join(reductions_fit$reductions %>% filter(strain_name %in% fitted_strains),succ, by = "strain_name")
+
+av_all_bys <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name, success) %>%
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+ggplot(av_all_bys, aes(x=name, y = mean)) + geom_bar(stat = "identity", aes(fill = success)) + 
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd)) + 
+  facet_wrap(~success)
+
+ggplot(av_all_bys, aes(x=name, y = mean,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - sd, ymax = mean + sd)) + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Mean log reduction")
+ggsave("plots/fit/succ_unsucc_sd.pdf")
+
+ggplot(av_all_bys, aes(x=name, y = mean,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - se, ymax = mean + se)) + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Mean log reduction")
+ggsave("plots/fit/succ_unsucc_se.pdf")
+
+### By success only not inoculum
+av_all_byso <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(success) %>%
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+spt <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(success) %>%
+  filter(!is.na(value)) %>% 
+  select(success, value) 
+
+t.test(as.numeric(unlist(spt %>% filter (success == "Successful") %>% select(value))), 
+       as.numeric(unlist(spt %>%filter(success == "Unsuccessful")%>% select(value)))) # not significant
 
 
-#### Example 
-# 11272
-d2 <- ddm %>% filter(strain == "11277", rep == 1.1) %>% ungroup() %>% select(Time,value_J)
-s <- summary(gcFitSpline(d2$Time, d2$value_J))
+ggplot(av_all_byso, aes(x=success, y = mean,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - sd, ymax = mean + sd)) + 
+  scale_x_discrete("") + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("")
+ggsave("plots/fit/succ_unsucc_sd_only_succ.pdf")
 
-# ##### Check exp growth OK across inocula of the same strain at set drying times
-# perc <- 0.2
-# param_exp_gr_lab <- param %>%
-#   group_by(strain_name, rep) %>%  # Mean over strain_name and rep - want to be same over dry times
-#   mutate(mean_peak_exp_gr = mean(exp_gr),
-#          mean_peak_exp_gr_p10 = mean_peak_exp_gr + perc*mean_peak_exp_gr,
-#          mean_peak_exp_gr_m10 = mean_peak_exp_gr - perc*mean_peak_exp_gr,
-#          outside = ifelse(exp_gr < mean_peak_exp_gr_m10 | exp_gr > mean_peak_exp_gr_p10, 1, 0)) %>%
-#   dplyr::mutate(sum_outside_s_r = sum(outside)) # number of odd datasets in this strain and replicate
-# 
-# #### check for exp_gr - remove if only one is "wrong"
-# param_typical <- param_exp_gr_lab %>%
-#   filter(sum_outside_s_r < 2) # some have only one in the strain and replicate
-# 
-# length(unique(param_typical$strain_name))
-# # For 1_2_6_ 9 strains still have typical behaviour
-# 
-# strains_typical = unique(param_typical$strain_name) # PERFECT strains
-# 
-# dim(param_typical_notexp_gr)[1] - dim(param_typical)[1] # 79 datasets removed because of exp_gr - one of those from the one strain that is removed ("RN6390B")
-# 
-# ggplot(param_exp_gr_lab[1:100,], aes(x=inocl, y = exp_gr)) + geom_point(aes(colour = factor(outside))) +
-#   scale_color_manual("In the limits?", values = c("black","red")) +
-#   facet_wrap(strain_name ~ rep + drytime) +
-#   geom_hline(aes(yintercept = mean_peak_exp_gr_m10)) +
-#   geom_hline(aes(yintercept = mean_peak_exp_gr_p10)) +
-#   geom_hline(aes(yintercept = mean_peak_exp_gr),lty = "dashed") +
-#   ggtitle(paste0(100*perc," percent from mean exponential growth"))
-# ggsave(paste0("plots/exp_growth/",name_code,100*perc,"perc_from_mean_exponential_growth.pdf"),width = 20, height = 20)
-# 
-# param %>% filter(strain_name == "11277", rep == 1.1, drytime == 0)
+ggplot(av_all_byso, aes(x=success, y = mean,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - se, ymax = mean + se)) + 
+  scale_x_discrete("") + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("")
+ggsave("plots/fit/succ_unsucc_se_only_succ.pdf")
+
+### LINEAGE 
+
+ggplot(succ_go %>% filter(meas == 1) %>%
+         pivot_longer(cols = c('10^3':'10^5')), aes(x=name, y = value, group = success)) + 
+  geom_point(aes(col = success), position = position_dodge(0.8)) + 
+  facet_wrap(~lineage) + 
+  scale_y_continuous("Log reduction") + 
+  scale_x_discrete("Inoculum")
+ggsave("plots/fit/lineage_all_points.pdf")
+
+### Average by lineage only
+av_all_bylo <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(lineage) %>% 
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+ggplot(av_all_bylo, aes(x=lineage, y = mean)) + 
+  geom_bar(stat = "identity",position = "dodge") + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - sd, ymax = mean + sd)) + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Mean log reduction (+/- sd)")
+ggsave("plots/fit/lineage.pdf")
+
+### Average by lineage and success
+av_all_byl <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name, lineage, success) %>% 
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+ggplot(av_all_byl, aes(x=name, y = mean, group = success)) + 
+  geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - se, ymax = mean + se)) + 
+  facet_wrap(~lineage) + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Mean log reduction")
+ggsave("plots/fit/lineage_succ_unsucc.pdf")
+
+ggplot(av_all_byl, aes(x=name, y = mean, group = success)) + 
+  geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - se, ymax = mean + se)) + 
+  facet_wrap(~lineage) + 
+  geom_text(data = av_all_byl, aes(x = name, y = mean + 1, label = n, group = success), position = position_dodge(0.8)) + 
+  scale_x_discrete("Inoculum") + 
+  scale_y_continuous("Mean log reduction")
+ggsave("plots/fit/lineage_succ_unsucc_labelled.pdf")
+
+# Which are v high / low? Check outliers in each lineage
+s <- succ_go %>%
+  filter(meas == 1) %>%
+  #pivot_longer(cols = c('10^3':'10^5')) %>% 
+  filter(lineage == "CC8") %>%
+  #dplyr::select(strain_name, rep, name, value, meas, lineage)
+  dplyr::select(strain_name, rep, meas, lineage)
+
+
+av_all_byl4 <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name, lineage, success) %>% 
+  filter(value < 2, value > 0) %>%
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+ggplot(av_all_byl4, aes(x=name, y = mean, group = success)) + 
+  geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - se, ymax = mean + se)) + 
+  facet_wrap(~lineage) 
+ggsave("plots/fit/lineage_succ_unsucc_remove_top.pdf")
+
+
+### Average by country and success
+av_all_byc <- succ_go %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = c('10^3':'10^5')) %>%
+  group_by(name, country, success) %>% 
+  filter(!is.na(value)) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE), n = n(), se = sd(value, na.rm = TRUE)/sqrt(n))
+
+ggplot(av_all_byc, aes(x=name, y = mean, group = success)) + 
+  geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean - se, ymax = mean + se)) + 
+  facet_wrap(~country) 
+ggsave("plots/fit/country_succ_unsucc.pdf")
+
+
+ggplot(succ_go %>% filter(meas == 1) %>%
+         pivot_longer(cols = c('10^3':'10^5')), aes(x=name, y = value, group = success)) + 
+  geom_point(aes(col = country,pch = success), position = position_dodge(0.8), size = 3, alpha = 0.8) + 
+  facet_wrap(~lineage) + 
+  scale_y_continuous("Log reduction") + 
+  scale_x_discrete("Inoculum")
+ggsave("plots/fit/lineage_all_points_by_country_&_succ.pdf")
+
+
+ggplot(succ_go %>% filter(meas == 1) %>%
+         pivot_longer(cols = c('10^3':'10^5')), aes(x=name, y = value, group = success)) + 
+  geom_point(aes(col = country,pch = success), position = position_dodge(0.8), size = 3, alpha = 0.8) + 
+  facet_wrap(~lineage) + 
+  scale_y_continuous("Log reduction") + 
+  scale_x_discrete("Inoculum")
+ggsave("plots/fit/lineage_all_points_by_country_&_succ.pdf", width = 10, height = 7)
+
+
+ggplot(succ_go %>% filter(meas == 1) %>%
+         pivot_longer(cols = c('10^3':'10^5')), aes(x=name, y = value, group = interaction(success,country))) + 
+  geom_point(aes(pch = success, col = country), position = position_dodge(0.8)) + 
+  facet_wrap(~lineage) + 
+  scale_y_continuous("Log reduction") + 
+  scale_x_discrete("Inoculum")
+ggsave("plots/fit/lineage_all_points_by_country.pdf")
+
+# Store tables
+write.csv(reductions_fit$reductions,"output/fit_reductions_all_data.csv")
+write.csv(reductions_fit$av_for_inoculum, "output/fit_av_by_inoc.csv")
+write.csv(reductions_fit$av_for_strain, "output/fit_av_by_strain.csv")
+
+
+
+
+### Group within a replicate
+grp_rep <- succ_go %>% ungroup() %>%
+  filter(meas == 1) %>%
+  pivot_longer(cols = `10^3`:`10^5`, names_to = "inoc", values_to = "logred") %>%
+  select(strain_name, inoc, rep, lineage, success, country, logred) %>%
+  group_by(strain_name, inoc, lineage, country, success) %>%
+  summarise(mean_lr = mean(logred, na.rm = TRUE), sd_lr = sd(logred, na.rm = TRUE), n = n())
+
+ggplot(grp_rep, aes(x= inoc, y = mean_lr, group = strain_name)) + 
+  geom_point(aes(col = strain_name)) + 
+  geom_line(aes(col = strain_name)) + 
+  scale_y_continuous("Mean log reduction over replicates") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_all_data.pdf")
+
+ggplot(grp_rep, aes(x = inoc, y = mean_lr, group = strain_name)) + 
+  geom_point(aes(pch = success, col = strain_name)) + 
+  facet_wrap(~lineage) + 
+  geom_line(aes(col = strain_name)) + 
+  scale_y_continuous("Mean log reduction over replicates") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_all_data_lineage_lines.pdf")
+
+ggplot(grp_rep, aes(x = inoc, y = mean_lr, group = success)) + 
+  geom_point(aes(pch = success, col = success), position = position_dodge(0.8)) + 
+  facet_wrap(~lineage) + 
+  scale_y_continuous("Mean log reduction over replicates") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_all_data_lineage_points.pdf")
+
+ggplot(grp_rep %>% group_by(inoc, lineage, country, success) %>%
+         summarise(mean_lri = mean(mean_lr), sd = sd(sd_lr), n = n()), 
+       aes(x = inoc, y = mean_lri, group = interaction(success,inoc))) + 
+  facet_grid(lineage~country) + 
+  geom_bar(stat = "identity", position = position_dodge(), aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_lri - sd, ymax = mean_lri + sd)) + 
+  scale_y_continuous("Mean log reduction") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_bars_cnty_line.pdf")
+
+ggplot(grp_rep %>% group_by(inoc, country, success) %>%
+         summarise(mean_lri = mean(mean_lr), sd = sd(sd_lr), n = n()), 
+       aes(x = inoc, y = mean_lri, group = interaction(success,inoc))) + 
+  facet_wrap(~country) + 
+  geom_bar(stat = "identity", position = position_dodge(), aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_lri - sd, ymax = mean_lri + sd)) +
+  scale_y_continuous("Mean log reduction") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_bars_cnty.pdf")
+
+ggplot(grp_rep %>% group_by(inoc, lineage, success) %>%
+         summarise(mean_lri = mean(mean_lr), sd = sd(sd_lr), n = n()), 
+       aes(x = inoc, y = mean_lri, group = interaction(success,inoc))) + 
+  facet_wrap(~lineage) + 
+  geom_bar(stat = "identity", position = position_dodge(), aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_lri - sd, ymax = mean_lri + sd)) + 
+  scale_y_continuous("Mean log reduction") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_bars_line.pdf")
+
+ggplot(grp_rep %>% group_by(inoc, lineage, success) %>%
+         summarise(mean_lri = mean(mean_lr,na.rm = TRUE), sd = sd(sd_lr, na.rm = TRUE), n = n()), 
+       aes(x = inoc, y = mean_lri, group = interaction(success,inoc))) + 
+  facet_wrap(~lineage) + 
+  geom_bar(stat = "identity", position = position_dodge(1), aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(1),aes(ymin = mean_lri - sd, ymax = mean_lri + sd)) + 
+  geom_text(aes(x = inoc, y = mean_lri + 1, label = n, group = success), position = position_dodge(1)) + 
+  scale_y_continuous("Mean log reduction") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_bars_line_nlabel.pdf")
+
+ggplot(grp_rep %>% group_by(inoc, success) %>%
+         summarise(mean_lri = mean(mean_lr,na.rm = TRUE), sd = sd(sd_lr, na.rm = TRUE), n = n()), 
+       aes(x = inoc, y = mean_lri, group = interaction(success,inoc))) + 
+  geom_bar(stat = "identity", position = position_dodge(1), aes(fill = success)) + 
+  geom_errorbar(position=position_dodge(1),aes(ymin = mean_lri - sd, ymax = mean_lri + sd)) + 
+  geom_text(aes(x = inoc, y = mean_lri + 1, label = n, group = success), position = position_dodge(1)) + 
+  scale_y_continuous("Mean log reduction") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_bars_inoc_successonly.pdf")
+
+ggplot(grp_rep %>% group_by(inoc) %>%
+         summarise(mean_lri = mean(mean_lr,na.rm = TRUE), sd = sd(sd_lr, na.rm = TRUE), n = n()), 
+       aes(x = inoc, y = mean_lri, group = inoc)) + 
+  geom_bar(stat = "identity", position = position_dodge(1)) + 
+  geom_errorbar(position=position_dodge(1),aes(ymin = mean_lri - sd, ymax = mean_lri + sd)) + 
+  geom_text(aes(x = inoc, y = mean_lri + 1, label = n), position = position_dodge(1)) + 
+  scale_y_continuous("Mean log reduction") +
+  scale_x_discrete("Inoculum") 
+ggsave("plots/fit/grp_rep_bars_inoconly.pdf")
+
+
+## For multilevel modelling
+mm <- grp_rep %>%
+  rename(logred = mean_lr) %>% 
+  filter(!is.na(logred)) %>%
+  ungroup() %>%
+  mutate(success_bin = ifelse(success == "Successful",1,0)) %>% 
+  select(strain_name, inoc, country, lineage, success, success_bin, logred)
+
+
+write.csv(mm, "output/mm_final_data.csv")
+
+

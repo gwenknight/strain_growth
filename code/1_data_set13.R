@@ -153,7 +153,7 @@ ddm[wa,"drytime"] <- 0
 ddm[wb,"drytime"] <- 168
 
 ### CHECK ALL OK? plots
-ggplot(ddm, aes(x=Time,y = value)) + geom_line(aes(group = inoc)) + facet_wrap(drytime~strain)
+ggplot(ddm, aes(x=Time,y = value, group = interaction(rep, variable, inoc, exp))) + geom_line(aes(col = factor(inoc))) + facet_wrap(drytime~strain)
 
 #### OUTPUT
 ddm <- subset(ddm, select = -c(strain_label,inoc_name)) # remove label

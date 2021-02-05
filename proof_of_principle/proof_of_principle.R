@@ -1,6 +1,7 @@
 ### Proof of principle
 
 ### Are OD and calorimeter output comparable? 
+#### Are heat flow and optical density data comparable? 
 
 ## libraries needed
 
@@ -19,7 +20,7 @@ library(zoo)
 theme_set(theme_bw(base_size=12)) # theme setting for plots: black and white (bw) and font size (24)
 mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(14)
 
-setwd(here:here())
+setwd(here::here())
 
 ## Load in functions for this analysis
 source("code/functions_for_heat_curves.R")
@@ -34,16 +35,19 @@ data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
 
 
 ### Look at data
-ggplot(data_cs, aes(x=Time, y = value_J, group = interaction(rep, inoc))) + 
+g1 <- ggplot(data_cs, aes(x=Time, y = value_J, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat curve")
+  scale_y_continuous("Heat curve") +
+  scale_x_continuous(lim = c(0,25)) + 
+  scale_color_discrete("Inoculum")
 ggsave("proof_of_principle/CD_data.pdf")
 
 ggplot(data_od, aes(x=Time, y = value, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")
+  scale_y_continuous("OD")+ 
+  scale_color_discrete("Inoculum")
 ggsave("proof_of_principle/OD_data.pdf")
 
 ### Smooth OD values
@@ -52,17 +56,30 @@ data_od <- data_od %>% group_by(rep, exp, variable, strain, inoc) %>%
          differ = c(0,diff(ma_value))) %>%
   ungroup()
 
-ggplot(data_od, aes(x=Time, y = ma_value, group = interaction(rep, inoc))) + 
+g2 <- ggplot(data_od, aes(x=Time, y = ma_value, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")
+  scale_y_continuous("OD")+ 
+  scale_color_discrete("Inoculum")
 ggsave("proof_of_principle/OD_data_smoothed.pdf")
 
-ggplot(data_od, aes(x=Time, y = differ, group = interaction(rep, inoc))) + 
+g3 <- ggplot(data_od, aes(x=Time, y = differ, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")
+  scale_y_continuous("OD")+ 
+  scale_color_discrete("Inoculum")
 ggsave("proof_of_principle/OD_data_difference.pdf")
+
+### Cumulate heat flow values
+g4 <- ggplot(data_cs, aes(x=Time, y = csum, group = interaction(rep, inoc))) + 
+  geom_line(aes(col = factor(inoc))) + 
+  facet_wrap(~strain) + 
+  scale_y_continuous("Heat curve") + 
+  scale_x_continuous(lim = c(0,25)) + 
+  scale_color_discrete("Inoculum") 
+
+(g1 + g4) / (g3 + g2) + plot_layout(guides = 'collect') + plot_annotation(tag_levels = 'A')
+ggsave("proof_of_principle/OD_vs_CS.pdf",width = 10, height = 10)
 
 
 
@@ -113,10 +130,10 @@ for(jj in 1:length(u)){ # for each strain
         w <- intersect(wj, which(data_all$inoc == as.numeric(inocl))) # which inoculum
         
         if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is data)
-          print(c(strain, replicate, inocl))
+          print(c(strain, replicate, inocl, exp))
           data1 <- data_all[w,] # Grab data
           
-          p <- cut_extract(data1, "Time", "value_comp", paste(strain, replicate, exp, inocl,sep="_")) ### NEW function: runs on any timeseries: gives baseline and cut parameter analysis
+          p <- cut_extract(data1, "Time", "value_comp", paste(strain, replicate, exp, inocl, sep="_"), early_cut = 0) ### NEW function: runs on any timeseries: gives baseline and cut parameter analysis
           
           ## Required parameters
           
@@ -195,9 +212,12 @@ write_csv(param, "proof_of_principle/parameters_output.csv")
 ggplot(data_all, aes(x=Time, y = value_comp, group = interaction(rep, inoc, exp))) + 
   geom_line(col = "grey", alpha = 0.2) + 
   facet_grid(exp~strain, scales = "free") + 
-  geom_line(data = data_all %>% group_by(strain, rep, exp, variable) %>% filter(Time < shoulder_point_t),aes(col = factor(inoc))) + 
-  geom_point(data = data_all, aes(x=shoulder_point_t, y = shoulder_point_v))
-ggsave("proof_of_principle/od_vs_cs_comparison.pdf")  
+  geom_line(data = data_all %>% group_by(strain, rep, exp, variable) %>% filter(Time <= shoulder_point_t),aes(col = factor(inoc))) + 
+  geom_point(data = data_all, aes(x=shoulder_point_t, y = shoulder_point_v)) + 
+  scale_x_continuous(lim = c(0,25)) + 
+  scale_y_continuous("Value for comparison (OD or heat flow value)") + 
+  scale_color_discrete("Inoculum")
+ggsave("proof_of_principle/od_vs_cs_comparison.pdf", width = 10, height = 10)  
 
 param %>% ungroup() %>% dplyr::select(strain_name, inocl, rep, experiment, timepeak) %>% pivot_wider(names_from = experiment, values_from = timepeak) %>%
   ggplot(aes(x=OD, y = CS)) + geom_point() + 
@@ -205,7 +225,7 @@ param %>% ungroup() %>% dplyr::select(strain_name, inocl, rep, experiment, timep
   scale_y_continuous(lim = c(0,25))
 ggsave("proof_of_principle/od_vs_cs_linear.pdf")
 
-## Correlation
+## Correlation in time to first peak
 corr <- c()
 for(i in unique(param$strain_name)){
   corr <- rbind(corr, 
@@ -215,3 +235,4 @@ for(i in unique(param$strain_name)){
 
 corr
 write.csv(corr, "proof_of_principle/corr_output.csv")
+
