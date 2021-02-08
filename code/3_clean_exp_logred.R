@@ -109,7 +109,7 @@ dir.create(file.path(here(), "plots/final_data_split_highlighted/"),showWarnings
 for(jj in 1:length(all_strains)){ # for each strain
   
   # Want to keep the unique combination of replicate and dataset that are clean
-  clean = param #%>% filter(removed_rep == 0, removed_dataset == 0, strain_name == all_strains[jj])
+  clean = param %>% filter(strain_name == all_strains[jj])
   
   ddm_strain <- ddm %>% filter(strain == all_strains[jj])
   ddm_orig_s <- ddm_orig %>% filter(strain == all_strains[jj])
@@ -169,7 +169,7 @@ for(jj in 1:length(all_strains)){ # for each strain
   #   geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
   #   ggtitle(all_strains[jj])
   
-  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf")) # if any to highlight it is shown here
+  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), width = 15) # if any to highlight it is shown here
 }
 
 

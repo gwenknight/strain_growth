@@ -12,7 +12,8 @@ theme_set(theme_bw(base_size=12)) # theme setting for plots: black and white (bw
 ddm_orig <- read.csv("output/cut_all_time_series_fit_params.csv")[,-1]
 ddm <- ddm_orig %>% filter(source == "Macotra") # only look at variaton in Macotra strains
 
-param <- read.csv("output/cut_all_model_fit_params.csv")[,-1]
+param_orig <- read.csv("output/cut_all_model_fit_params.csv")[,-1]
+param <- param_orig %>% filter(strain_name %in% unique(ddm$strain))
 
 #################**************** CHECK EXPONENTIAL GROWTH *******************###############
 dir.create(file.path(here(), "plots/exp_growth/"),showWarnings = FALSE) # Create a file for this output
@@ -199,6 +200,21 @@ ggplot(pp_strain_names, aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = fac
   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") + 
   ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
 ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth.pdf"),width = 30, height = 30)
+
+
+ggplot(pp_strain_names %>% filter(strain_name == "11288"), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 3) +
+  scale_color_manual("In the limits?", values = c("black","red")) +
+  scale_shape_discrete("Drytime") + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
+  scale_y_continuous("Exponential growth", lim = c(0,0.03)) + 
+  facet_wrap(strain_name ~ rep, ncol = 30) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(remove_strain))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(remove_strain))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") + 
+  ggtitle(paste0("11288. Red = outside of limits (",100*cutoff,"%)")) + theme_bw(base_size = 20)
+ggsave(paste0("plots/exp_growth/eg_cutoff_from_mean_exponential_growth.pdf"))
+
+
 
 ggplot(pp_strain_names %>% filter(remove_strain == 1), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
   scale_color_manual("In the limits?", values = c("black","red")) +
