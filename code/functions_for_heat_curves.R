@@ -29,7 +29,7 @@ find_peaks <- function (x, m = 3){
 ### Output: time series data up to cut point: time of end of exponential growth
 ### Output: lag time / exponential growth / time of end of exponential growth 
 
-cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0, plot_where = "plots/", early_cut = 3){
+cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0, plot_where = "plots/", early_cut = 3.5){
   ## ts = timeseries
   ## Time = name of time column
   ## value = name of value column
@@ -180,7 +180,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     
     #### How far is the predicted straight line from the data? 
     #if(length(pred_points_fit) > 28){leng = 28}else{leng = length(pred_points_fit)}
-    integer_times <- ts %>% filter(Time >= min(times_line), Time <= max(times_line))
+    integer_times <- ts %>% filter(Time >= (min(times_line)-0.02), Time <= (max(times_line)+0.02))
     dist <- as.numeric(c(pred_points_fit - unlist(integer_times[,value])))
     
     # Crossing points
@@ -293,11 +293,11 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     }
   
   # NEW TS: cut up to first peak or shoulder 
+  #print(paste0("Early cut = ",early_cut))
   ts <- ts %>% 
     filter(Time > early_cut) %>% # cut off first 3hrs 
     mutate(cutpart = ifelse(Time <= cut_point_t,1,0)) %>%
     filter(cutpart == 1) # Trim off extra parts
-  
   
   ### Look at this cut data
   ## Currently the time to use is: peak growth 

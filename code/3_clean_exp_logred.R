@@ -14,6 +14,7 @@ library(matrixStats) # for row sd calculations
 library(Matrix) # for nnzero function
 library(ggplot2)
 library(patchwork) # for combining plots
+library(RColorBrewer)
 theme_set(theme_bw(base_size=14)) # theme setting for plots: black and white (bw) and font size (24)
 
 setwd(here::here())
@@ -52,15 +53,16 @@ po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = 
                                                        ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
   mutate(rep_st = case_when((ones == 1) ~ 1,
                             (threes == 1)  ~ 3,
-                            (twos == 1) ~ 2)) # tries pmax etc didn't work # Labels reps as 1 2 3
+                            (twos == 1) ~ 2)) %>% # tries pmax etc didn't work # Labels reps as 1 2 3
+  select(-c(maxx,minn, ones, threes, twos))
 
 write.csv(po, "output/param_labelled_repst.csv")
 
 #####*************************** REMOVE THOSE WITH EXPONENTIAL GROWTH OUTSIDE OF RANGE *******************###############
 cutoff <- 0.34
 
-pp_strain_names <- param %>%
-  group_by(strain_name, rep) %>% 
+pp_strain_names <- po %>%
+  group_by(strain_name, rep_st) %>% 
   mutate(mean_peak_exp_gr = mean(cut_exp),
          mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
          mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
@@ -74,25 +76,27 @@ pp_strain_names <- param %>%
   ungroup() %>%
   mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
   group_by(strain_name) %>%
-  mutate(remove_strain = ifelse(n_distinct(keep_rep) > 2,0,1))
+  mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
 
 #### Remove those with exponential values outside the above range
 param_expok <- pp_strain_names %>%
   filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
-  filter(total_rep_rem == 0) # remove those reps with more than 2 outside
+  filter(total_rep_rem == 0) #%>% # remove those reps with more than 2 outside
+  #filter(outside == 0) # remove those datasets outside the range
 
-length(which(pp_strain_names$remove_strain == 1)) # 167 datasets removed due to strain being removed
+length(which(pp_strain_names$remove_strain == 1)) # 155 datasets removed due to strain being removed
 length(which(pp_strain_names$total_rep_rem == 1)) # 4 single reps removed from strains
+length(which(pp_strain_names$outside == 1)) # 237 single datasets removed from strains
 
 dim(pp_strain_names)[1] - dim(param_expok)[1]
 
-
+outside_datasets <- pp_strain_names %>% filter(outside == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl, outside)
 
 length(unique(param_expok$strain_name)) # New with 10% of strain removed
 length(unique(param$strain_name)) # Original total
 
 setdiff(unique(param$strain_name),unique(param_expok$strain_name))
-# Only 10 strains removed: we can't use these are their exponential growth is too variable
+# Only 9 strains removed: we can't use these are their exponential growth is too variable
 
 strains_typical = unique(param_expok$strain_name) # PERFECT strains
 
@@ -120,7 +124,7 @@ for(jj in 1:length(all_strains)){ # for each strain
     wc<-c(wc,intersect(w1,which(ddm_strain$drytime == clean[i,"drytime"])))
   }
   
-  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time < shoulder_point_t)
+  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time < shoulder_point_t, Time > 3.5)
   dd$odd_type <- as.character(dd$odd_type)
   ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
   dd$odd_type_db <- as.character(dd$odd_type_db)
@@ -216,9 +220,12 @@ if(length(w26) > 0){param_expok <- param_expok[-w26,]}
 # If r^2 over 8 then good
 r2_threshold = 0.75
 
-# MODEL FIT
+###########*********** MODEL FIT ********************#########################
+
 reductions_fit <- fit_line_model(reps, strains, param_expok, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
 
+###########*###########***********###########***********###########***********
+###########*
 # ### Check fits
 reductions_fit$fit$R2 <- as.numeric(reductions_fit$fit$R2)
 ggplot(reductions_fit$fit, aes(x=strain, y = R2)) +
@@ -235,12 +242,12 @@ fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
 
 dim(reductions_fit$fit)
 dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
-250-234
+252-242
 
 
-length(unique(param_expok$strain_name)) # 88 into the function
-length(unique(reductions_fit$fit$strain)) # 88 Not filtered on R2
-length(fitted_strains) # 86 Filtered on R2
+length(unique(param_expok$strain_name)) # 89 into the function
+length(unique(reductions_fit$fit$strain)) # 89 Not filtered on R2
+length(fitted_strains) # 89 Filtered on R2
 
 setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))
 setdiff(unique(reductions_fit$fit$strain),fitted_strains)
@@ -253,10 +260,21 @@ setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 # meas = 2 = percentage reduction 
 # meas = 3 = inoculum
 # meas = 4 = predicted inoculum
+rw <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% pivot_longer(`10^2`:`10^6`) 
+rw$inocl <- as.numeric(substr(rw$name,4,4))
+outside_datasets$ticker <- outside_datasets$rep_st 
+outside_datasets$dry <- outside_datasets$drytime
+
+rwo <- left_join(rw, outside_datasets %>% dplyr::select(-c(rep_st, drytime)))
+
+ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside))) + 
+  facet_wrap(~strain_name)
+ggsave("output/reductions_exp_outlier.pdf")
+
 
 #### Average
 # Take the average over all values
-reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
+rwo %>% 
   ungroup() %>% 
   group_by(strain_name) %>% 
   summarise(mean_strain = mean(mean), sd_strain = sd(mean)) %>% # This is the mean over the replicates for each strain
@@ -281,17 +299,14 @@ repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>%
   mutate(diff1 = abs(ifelse(is.na(`2`),NA,ifelse(is.na(`1`),NA,`2`-`1`))),
          diff2 = abs(ifelse(is.na(`3`),NA,ifelse(is.na(`2`),NA,`3`-`2`))),
          diff3 = abs(ifelse(is.na(`3`),NA,ifelse(is.na(`1`),NA,`3`-`1`)))) %>%
-  pivot_longer(cols = diff1:diff3)
+  pivot_longer(cols = diff1:diff3) %>% 
+  filter(!is.na(value))
 
 pdf("plots/final/replicate_variable.pdf")
-hist(repv$value, breaks = seq(0,4,0.2)) 
+hist(repv$value, breaks = seq(0,9,0.2)) 
 dev.off()
 
 ggplot(repv, aes(x=strain_name, y = value)) + geom_point(aes(col = name))
-
-
-
-- Replicate variation: I was going to do a histogram of the difference in log reduction between replicates to see the variation. Have yet to do
 
 # Take the average by inoculum 
 av_inoc <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
@@ -302,6 +317,8 @@ av_inoc <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>
   ungroup() %>% 
   group_by(name) %>% 
   summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE))
+
+av_inoc
 
 av_inoc$lab = as.numeric(substr(av_inoc$name,4,4))
 
@@ -421,7 +438,7 @@ g4 <- ggplot(av_inoc_succ_country, aes(x=lab, y = mean_inoc,group = success)) + 
 
 (g1 + g2) / (g3 + g4) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
   theme(legend.position='bottom')
-ggsave("plots/final/figure1.pdf")
+ggsave("plots/final/figure1.pdf", width = 15)
 
 
 ## For multilevel modelling

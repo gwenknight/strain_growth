@@ -5,8 +5,10 @@ library(tidyverse) # library for filtering / summarising data
 library(matrixStats) # for row sd calculations
 library(Matrix) # for nnzero function
 library(patchwork) # for plot combinations
+library(here)
 theme_set(theme_bw(base_size=12)) # theme setting for plots: black and white (bw) and font size (24)
 
+setwd(here::here())
 
 #####*************************** READ IN DATA *******************###############
 ddm_orig <- read.csv("output/cut_all_time_series_fit_params.csv")[,-1]
@@ -69,9 +71,10 @@ param_exp_gr_lab %>% dplyr::select(strain_name, rep, inocl, drytime, cut_exp, me
 pp <- param_exp_gr_lab %>% 
   ungroup() %>% 
   group_by(strain_name, rep, thresh) %>% # For each strain and replicate, how many datasets
-  mutate(total_outside = sum(value), total = n()) %>% # are outside this threshold and how many datasets in total (some have < 6)
+  dplyr::mutate(total_outside = sum(value), total = n()) %>% # are outside this threshold and how many datasets in total (some have < 6)
   dplyr::select(strain_name, rep, inocl, drytime, total_outside, thresh, total, value) %>%
-  ungroup() 
+  ungroup() %>% 
+  group_by(thresh, total_outside)
 
 pp_all <- pp %>% group_by(thresh, total_outside) %>% # For each threshold and number outside the range, how many 
   summarise(ns = n_distinct(strain_name, rep)) %>% # distinct strain and replicates are there
@@ -186,7 +189,7 @@ pp_strain_names <- param %>%
   ungroup() %>%
   mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>% # if none to remove then put in rep name
   group_by(strain_name) %>%
-  mutate(remove_strain = ifelse(n_distinct(keep_rep) > 2,0,1)) # if distinct reps greater than 2 => 0 don't remove strain, else remove
+  mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
 
 theme_set(theme_bw(base_size=6))
 ggplot(pp_strain_names, aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
