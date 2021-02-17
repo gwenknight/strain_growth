@@ -30,7 +30,7 @@ source("code/grofit_functions.R") # have copied those we use into this R script
 
 ## Data
 
-data_od <- read_csv("proof_of_principle/ddm_OD.csv")[,-1]
+data_od_orig <- read_csv("proof_of_principle/ddm_OD.csv")[,-1]
 data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
 
 
@@ -38,45 +38,56 @@ data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
 g1 <- ggplot(data_cs, aes(x=Time, y = value_J, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat curve") +
+  scale_y_continuous("Heat flow curve") +
   scale_x_continuous(lim = c(0,25)) + 
-  scale_color_discrete("Inoculum")
+  scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
+                                                                     str2expression("10^4"),str2expression("10^5"),
+                                                                     str2expression("10^6"))) 
 ggsave("proof_of_principle/CD_data.pdf")
 
-ggplot(data_od, aes(x=Time, y = value, group = interaction(rep, inoc))) + 
+ggplot(data_od_orig, aes(x=Time, y = value, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
   scale_y_continuous("OD")+ 
-  scale_color_discrete("Inoculum")
+  scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
+                                                                     str2expression("10^4"),str2expression("10^5"),
+                                                                     str2expression("10^6"))) 
 ggsave("proof_of_principle/OD_data.pdf")
 
 ### Smooth OD values
-data_od <- data_od %>% group_by(rep, exp, variable, strain, inoc) %>%
+data_od <- data_od_orig %>% group_by(rep, exp, variable, strain, inoc) %>%
   mutate(ma_value = rollapply(value, 10, mean,fill = NA),
          differ = c(0,diff(ma_value))) %>%
-  ungroup()
+  ungroup() %>%
+  filter(Time > 1, Time < 22)
 
 g2 <- ggplot(data_od, aes(x=Time, y = ma_value, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")+ 
-  scale_color_discrete("Inoculum")
+  scale_y_continuous("Optical density (600 nm)")+ 
+  scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
+                                                                     str2expression("10^4"),str2expression("10^5"),
+                                                                     str2expression("10^6"))) 
 ggsave("proof_of_principle/OD_data_smoothed.pdf")
 
 g3 <- ggplot(data_od, aes(x=Time, y = differ, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")+ 
-  scale_color_discrete("Inoculum")
+  scale_y_continuous("Difference in optical density (600 nm) per time step")+ 
+  scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
+                                                                     str2expression("10^4"),str2expression("10^5"),
+                                                                     str2expression("10^6"))) 
 ggsave("proof_of_principle/OD_data_difference.pdf")
 
 ### Cumulate heat flow values
 g4 <- ggplot(data_cs, aes(x=Time, y = csum, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat curve") + 
+  scale_y_continuous("Heat flow curve") + 
   scale_x_continuous(lim = c(0,25)) + 
-  scale_color_discrete("Inoculum") 
+  scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
+                                                                     str2expression("10^4"),str2expression("10^5"),
+                                                                     str2expression("10^6"))) 
 
 (g1 + g4) / (g3 + g2) + plot_layout(guides = 'collect') + plot_annotation(tag_levels = 'A')
 ggsave("proof_of_principle/OD_vs_CS.pdf",width = 10, height = 10)
@@ -103,7 +114,7 @@ r <- unique(data_all$rep) # replicates
 # What are the inoculums? 
 q <- unique(data_all$inoc)
 # What are the data types? 
-da <- c("OD","CS")
+da <- c("OD","Heat flow")
 
 ## Run thru each experiment (columns in original data) for each strain
 # Fit separately to each replicate as otherwise don't have enough data for later predictions
@@ -215,8 +226,10 @@ ggplot(data_all, aes(x=Time, y = value_comp, group = interaction(rep, inoc, exp)
   geom_line(data = data_all %>% group_by(strain, rep, exp, variable) %>% filter(Time <= shoulder_point_t),aes(col = factor(inoc))) + 
   geom_point(data = data_all, aes(x=shoulder_point_t, y = shoulder_point_v)) + 
   scale_x_continuous(lim = c(0,25)) + 
-  scale_y_continuous("Value for comparison (OD or heat flow value)") + 
-  scale_color_discrete("Inoculum")
+  scale_y_continuous("Value for comparison (OD (600nm) or heat flow value)") + 
+  scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
+                                                                     str2expression("10^4"),str2expression("10^5"),
+                                                                     str2expression("10^6"))) 
 ggsave("proof_of_principle/od_vs_cs_comparison.pdf", width = 10, height = 10)  
 
 param %>% ungroup() %>% dplyr::select(strain_name, inocl, rep, experiment, timepeak) %>% pivot_wider(names_from = experiment, values_from = timepeak) %>%

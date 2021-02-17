@@ -59,7 +59,7 @@ po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = 
 write.csv(po, "output/param_labelled_repst.csv")
 
 #####*************************** REMOVE THOSE WITH EXPONENTIAL GROWTH OUTSIDE OF RANGE *******************###############
-cutoff <- 0.34
+cutoff <- 0.36
 
 pp_strain_names <- po %>%
   group_by(strain_name, rep_st) %>% 
@@ -82,7 +82,7 @@ pp_strain_names <- po %>%
 param_expok <- pp_strain_names %>%
   filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
   filter(total_rep_rem == 0) #%>% # remove those reps with more than 2 outside
-  #filter(outside == 0) # remove those datasets outside the range
+  filter(outside == 0) # remove those datasets outside the range
 
 length(which(pp_strain_names$remove_strain == 1)) # 155 datasets removed due to strain being removed
 length(which(pp_strain_names$total_rep_rem == 1)) # 4 single reps removed from strains
@@ -272,17 +272,20 @@ ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside))) +
 ggsave("output/reductions_exp_outlier.pdf")
 
 
+
+
 #### Average
 # Take the average over all values
 rwo %>% 
   ungroup() %>% 
   group_by(strain_name) %>% 
-  summarise(mean_strain = mean(mean), sd_strain = sd(mean)) %>% # This is the mean over the replicates for each strain
+  dplyr::summarise(mean_strain = mean(mean, na.rm = TRUE), sd_strain = sd(mean, na.rm = TRUE), .groups = "drop") %>% # This is the mean over the replicates for each strain
   ungroup() %>%
-  summarise(mean_all = mean(mean_strain), sd_all = sd(mean_strain)) # This is the mean over the mean replicates for each strain
+  dplyr::summarise(mean_all = mean(mean_strain, na.rm = TRUE), sd_all = sd(mean_strain, na.rm = TRUE), .groups = "drop") # This is the mean over the mean replicates for each strain
 
 #### Replicate variation
-ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x=ticker, y = mean)) + geom_bar(stat = "identity", aes(fill = factor(ticker))) + 
+ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x=ticker, y = mean)) + 
+  geom_bar(stat = "identity", aes(fill = factor(ticker))) + 
   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd)) + 
   facet_wrap(~strain_name) + 
   scale_fill_discrete("Replicate") + 

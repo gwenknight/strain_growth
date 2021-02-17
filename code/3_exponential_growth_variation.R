@@ -51,10 +51,15 @@ param_exp_gr_lab <- param %>%
          outside26 = ifelse(cut_exp > (mean_peak_exp_gr + 0.26*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.26*mean_peak_exp_gr), 1, 0),
          outside28 = ifelse(cut_exp > (mean_peak_exp_gr + 0.28*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.28*mean_peak_exp_gr), 1, 0),
          outside30 = ifelse(cut_exp > (mean_peak_exp_gr + 0.3*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.3*mean_peak_exp_gr), 1, 0),
+         outside31 = ifelse(cut_exp > (mean_peak_exp_gr + 0.31*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.31*mean_peak_exp_gr), 1, 0),
          outside32 = ifelse(cut_exp > (mean_peak_exp_gr + 0.32*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.32*mean_peak_exp_gr), 1, 0),
+         outside33 = ifelse(cut_exp > (mean_peak_exp_gr + 0.33*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.33*mean_peak_exp_gr), 1, 0),
          outside34 = ifelse(cut_exp > (mean_peak_exp_gr + 0.34*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.34*mean_peak_exp_gr), 1, 0),
+         outside35 = ifelse(cut_exp > (mean_peak_exp_gr + 0.35*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.35*mean_peak_exp_gr), 1, 0),
          outside36 = ifelse(cut_exp > (mean_peak_exp_gr + 0.36*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.36*mean_peak_exp_gr), 1, 0),
+         outside37 = ifelse(cut_exp > (mean_peak_exp_gr + 0.37*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.37*mean_peak_exp_gr), 1, 0),
          outside38 = ifelse(cut_exp > (mean_peak_exp_gr + 0.38*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.38*mean_peak_exp_gr), 1, 0),
+         outside39 = ifelse(cut_exp > (mean_peak_exp_gr + 0.39*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.39*mean_peak_exp_gr), 1, 0),
          outside40 = ifelse(cut_exp > (mean_peak_exp_gr + 0.4*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.4*mean_peak_exp_gr), 1, 0),
          outside50 = ifelse(cut_exp > (mean_peak_exp_gr + 0.5*mean_peak_exp_gr) | cut_exp < (mean_peak_exp_gr - 0.5*mean_peak_exp_gr), 1, 0)) %>% 
   pivot_longer(col = c(outside05:outside50)) %>%
@@ -129,8 +134,9 @@ g1 <- ggplot(pp_all, aes(x=thresh, y = perc)) +
   scale_y_continuous("% of strain and replicate combinations") + 
   scale_fill_discrete("Number of\ndatasets\nexcluded") + 
   geom_hline(yintercept = 10, lty = "dashed") + 
+  geom_hline(yintercept = 5, lty = "dashed") +
   geom_hline(yintercept = 30, lty = "dashed") + 
-  geom_vline(xintercept = 34, lty = "dashed")
+  geom_vline(xintercept = 36, lty = "dashed")
 ggsave("plots/exp_growth/exp_explore_perc_datasets.pdf")
 
 # By strain & drytime
@@ -146,9 +152,10 @@ g2 <- ggplot(pp_strain_dryt, aes(x=thresh, y = perc)) +
   scale_x_continuous("Exclude if exponential growth is +/- \nthis percentage away from mean") + 
   scale_y_continuous("Percentage of reps x drytimes") + 
   geom_hline(yintercept = 10, lty = "dashed") + 
+  geom_hline(yintercept = 5, lty = "dashed") +
   geom_hline(yintercept = 30, lty = "dashed") +
   scale_fill_discrete("Number of\nrep x drytimes\nexcluded") + 
-  geom_vline(xintercept = 34, lty = "dashed")
+  geom_vline(xintercept = 36, lty = "dashed")
 
 # By strain
 ggplot(pp_strain, aes(x=thresh, y = ns)) + 
@@ -163,9 +170,10 @@ g3 <- ggplot(pp_strain, aes(x=thresh, y = perc)) +
   scale_x_continuous("Exclude if exponential growth is +/- \nthis percentage away from mean") + 
   scale_y_continuous("Percentage of strains") + 
   scale_fill_discrete("Number of\nreps\nexcluded") + 
-  geom_hline(yintercept = 10, lty = "dashed") + 
+  geom_hline(yintercept = 10, lty = "dashed") +
+  geom_hline(yintercept = 5, lty = "dashed") +
   geom_hline(yintercept = 30, lty = "dashed") + 
-  geom_vline(xintercept = 34, lty = "dashed")
+  geom_vline(xintercept = 36, lty = "dashed")
 
 (g1 + g2) / g3 + plot_annotation(tag_levels = 'A')
 ggsave("plots/exp_growth/exp_explore_combine.pdf", width = 25)
