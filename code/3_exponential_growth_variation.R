@@ -180,7 +180,7 @@ ggsave("plots/exp_growth/exp_explore_combine.pdf", width = 25)
 
 #################****************  PLOT THE INDIVIDUAL POINT VARIATION *******************###############
 
-cutoff <- 0.34 ## Determined as the cutoff that removes the top 10% of variable strains
+cutoff <- 0.36 ## Determined as the cutoff that removes the top 10% of variable strains
 
 pp_strain_names <- param %>%
   group_by(strain_name, rep) %>% # Over the replicate within a strain

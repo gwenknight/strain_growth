@@ -253,7 +253,7 @@ setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))
 setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 
 
-
+###############################******************** RESULTS *****************************###################################
 ######## Over all strains
 # in reductions. Meas column key: 
 # meas = 1 = log reduction 
@@ -312,16 +312,21 @@ dev.off()
 ggplot(repv, aes(x=strain_name, y = value)) + geom_point(aes(col = name))
 
 # Take the average by inoculum 
-av_inoc <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
+av_inoc_all <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
-  group_by(strain_name, name) %>% 
-  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  group_by(name) %>% 
-  summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE))
+  dplyr::select(strain_name, name, value) %>% 
+  dplyr::group_by(strain_name, name) %>% 
+  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE), .groups = "drop")
+av_inoc <- av_inoc_all %>%  group_by(name) %>% 
+  dplyr::summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE), .groups = "drop")
 
 av_inoc
+
+# ANOVA of impact of inoculum
+anova.inoc <- aov(mean_strain ~ name, data = av_inoc_all)
+summary(anova.inoc)
+TukeyHSD(anova.inoc)
 
 av_inoc$lab = as.numeric(substr(av_inoc$name,4,4))
 
@@ -337,16 +342,19 @@ succ$strain_name <- as.character(succ$strain)
 
 succ_go <- left_join(reductions_fit$reductions %>% filter(strain_name %in% fitted_strains),succ, by = "strain_name")
 
-av_all_bys <- succ_go %>%
+av_all_bys_all <- succ_go %>%
   filter(r2 > r2_threshold, meas == 1) %>%
   pivot_longer(cols = c('10^3':'10^5')) %>%
   group_by(strain_name, success) %>% 
-  summarise(mean_strain = mean(mean, na.rm = TRUE), sd_strain = sd(mean, na.rm = TRUE)) %>% # Mean = mean over inoc for this replicate. Mean_strain = mean over replicates
-  ungroup() %>% 
-  group_by(success) %>% 
-  summarise(mean_succ = mean(mean_strain, na.rm = TRUE), sd_succ = sd(mean_strain, na.rm = TRUE))
+  dplyr::summarise(mean_strain = mean(mean, na.rm = TRUE), sd_strain = sd(mean, na.rm = TRUE), .groups = "drop") # Mean = mean over inoc for this replicate. Mean_strain = mean over replicates
+
+av_all_bys <- av_all_bys_all %>%  group_by(success) %>% 
+  dplyr::summarise(mean_succ = mean(mean_strain, na.rm = TRUE), sd_succ = sd(mean_strain, na.rm = TRUE), .groups = "drop")
 
 av_all_bys 
+
+## T test of difference
+t.test(mean_strain ~ success, data = av_all_bys_all)
   
 ggplot(av_all_bys, aes(x=success, y = mean_succ)) + geom_bar(stat = "identity", aes(fill = success)) + 
   geom_errorbar(aes(ymin = mean_succ - sd_succ, ymax = mean_succ + sd_succ)) + 
