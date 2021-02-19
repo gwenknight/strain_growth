@@ -50,7 +50,7 @@ drytimes <- unique(param$drytime)
 
 # Change replicates from within experiment given names to replicate 1 to 3 for all 
 po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = min(rep), 
-                                                       ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
+                                                        ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
   mutate(rep_st = case_when((ones == 1) ~ 1,
                             (threes == 1)  ~ 3,
                             (twos == 1) ~ 2)) %>% # tries pmax etc didn't work # Labels reps as 1 2 3
@@ -66,7 +66,10 @@ pp_strain_names <- po %>%
   mutate(mean_peak_exp_gr = mean(cut_exp),
          mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
          mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
-         outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0)) %>%
+         outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
+         diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
+         max = max(diff), 
+         remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
   ungroup() %>% 
   group_by(strain_name, rep,drytime) %>% 
   mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
@@ -76,21 +79,73 @@ pp_strain_names <- po %>%
   ungroup() %>%
   mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
   group_by(strain_name) %>%
-  mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
+  mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) %>% # n_distinct counts 0 so need to remove
+  group_by(strain_name, rep_st, remove_dataset) %>%
+  mutate(mean_peak_exp_gr2 = mean(cut_exp),
+         mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
+         mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
+         outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
+         diff2 = ifelse(outside2 == 1, abs(cut_exp - mean_peak_exp_gr2), 0),
+         max2 = max(diff2), 
+         remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
+  group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
+  mutate(mean_peak_exp_gr3 = mean(cut_exp),
+         mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
+         mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
+         outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
+         diff3 = ifelse(outside3 == 1, abs(cut_exp - mean_peak_exp_gr3), 0),
+         max3 = max(diff3), 
+         remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
+  group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
+  mutate(mean_peak_exp_gr4 = mean(cut_exp),
+         mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
+         mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
+         outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
+         diff4 = ifelse(outside4 == 1, abs(cut_exp - mean_peak_exp_gr4), 0),
+         max4 = max(diff4), 
+         remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
+  ungroup() %>%
+  mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4)
+
+pp_strain_names %>% select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
+
+
+pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>% 
+  select(strain_name, rep_st, drytime, inocl, remove_strain, remove_dataset, remove_dataset2,cut_exp,
+         #        cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside, diff, max, remove_dataset,
+         #        mean_peak_exp_gr_m102, mean_peak_exp_gr2, mean_peak_exp_gr_p102, outside2, diff2, max2, remove_dataset2,
+         mean_peak_exp_gr_m103, mean_peak_exp_gr3, mean_peak_exp_gr_p103, outside3, diff3, max3, remove_dataset3) %>%
+  #       mean_peak_exp_gr_m104, mean_peak_exp_gr4, mean_peak_exp_gr_p104, outside4, diff4, max4, remove_dataset4) %>%
+  filter(strain_name == "11276")
+
+
 
 #### Remove those with exponential values outside the above range
 param_expok <- pp_strain_names %>%
   filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
-  filter(total_rep_rem == 0) #%>% # remove those reps with more than 2 outside
-  filter(outside == 0) # remove those datasets outside the range
+  filter(total_rep_rem == 0) %>% # remove those reps with more than 2 outside
+  #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
+  filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0)
 
+## Which are removed? 
 length(which(pp_strain_names$remove_strain == 1)) # 155 datasets removed due to strain being removed
 length(which(pp_strain_names$total_rep_rem == 1)) # 4 single reps removed from strains
 length(which(pp_strain_names$outside == 1)) # 237 single datasets removed from strains
 
+p2 <- pp_strain_names %>% filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
+  filter(total_rep_rem == 0)
+length(which(p2$remove_dataset == 1)) # Each of these is remove one dataset and then recalculate the mean
+length(which(p2$remove_dataset2 == 1)) # 
+length(which(p2$remove_dataset3 == 1))
+length(which(p2$remove_dataset4 == 1))
+
+length(which(p2$outside == 1)) # 138 single datasets removed from strains if do not recalculate the mean (after exclude those reps and strains)
+length(which(p2$remove_dataset == 1)) + length(which(p2$remove_dataset2 == 1)) + length(which(p2$remove_dataset3 == 1)) + length(which(p2$remove_dataset4 == 1)) # only remove 136 if recalculate mean = 2 extra datasets! 
+
 dim(pp_strain_names)[1] - dim(param_expok)[1]
 
 outside_datasets <- pp_strain_names %>% filter(outside == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl, outside)
+outside_datasets2 <- pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl)
 
 length(unique(param_expok$strain_name)) # New with 10% of strain removed
 length(unique(param$strain_name)) # Original total
@@ -135,24 +190,24 @@ for(jj in 1:length(all_strains)){ # for each strain
     facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
     scale_color_manual("Odd_type", 
                        breaks = c("0","14","24","34","124","134","05",
-                                              "145","245"),
+                                  "145","245"),
                        labels = c("None","Peak&Double",
                                   "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","ExpGr",
                                   "Peak Shoulder&ExpGr","Width Shoulder&ExpGr"),
                        #breaks = c("0","1","2","3","4","5",
-                      #                        "12","13","23","123","14",
-                      #                        "24","34","124","134","234",
-                      #                        "1234","05",
-                      #                        "15","25","35","45",
-                      #                        "145","245","345"), 
-                      #                        "1235","235","1235","135",
-                      # labels = c("None","Peak","Width","Shoulder","Double","ExpGr",
-                      #            "Peak&Width","Peak&Shoulder","Width&Shoulder","Peak Width&Shoulder","Peak&Double",
-                      #            "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","Width Shoulder&Double",
-                      #            "Peak Width Shoulder&Double","ExpGr",
-                      #            "Peak&ExpGr","Width&ExpGr","Shoulder&ExpGr","Double&ExpGr",
-                      #            "Peak Width Shoulder&ExpGr","Width Shoulder&ExpGr","Peak Width Shoulder&ExpGr","Peak Shoulder&ExpGr",
-                      #            "Peak Double&ExpGr","Width Double&ExpGr","Shoulder Double ExpGr"),
+                       #                        "12","13","23","123","14",
+                       #                        "24","34","124","134","234",
+                       #                        "1234","05",
+                       #                        "15","25","35","45",
+                       #                        "145","245","345"), 
+                       #                        "1235","235","1235","135",
+                       # labels = c("None","Peak","Width","Shoulder","Double","ExpGr",
+                       #            "Peak&Width","Peak&Shoulder","Width&Shoulder","Peak Width&Shoulder","Peak&Double",
+                       #            "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","Width Shoulder&Double",
+                       #            "Peak Width Shoulder&Double","ExpGr",
+                       #            "Peak&ExpGr","Width&ExpGr","Shoulder&ExpGr","Double&ExpGr",
+                       #            "Peak Width Shoulder&ExpGr","Width Shoulder&ExpGr","Peak Width Shoulder&ExpGr","Peak Shoulder&ExpGr",
+                       #            "Peak Double&ExpGr","Width Double&ExpGr","Shoulder Double ExpGr"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
     geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
@@ -262,14 +317,37 @@ setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 # meas = 4 = predicted inoculum
 rw <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% pivot_longer(`10^2`:`10^6`) 
 rw$inocl <- as.numeric(substr(rw$name,4,4))
+
+# Straight outside calculation
 outside_datasets$ticker <- outside_datasets$rep_st 
-outside_datasets$dry <- outside_datasets$drytime
+outside_datasets168 <- outside_datasets %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
+outside_datasets168$outside168 <- outside_datasets168$outside
 
-rwo <- left_join(rw, outside_datasets %>% dplyr::select(-c(rep_st, drytime)))
+rwoo <- left_join(rw, outside_datasets %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
+rwo <- left_join(rwoo, outside_datasets168 %>% dplyr::select(-c(outside))) %>%
+  mutate(outside_f = ifelse(is.na(outside), ifelse(is.na(outside168),"NA",1),1))
 
-ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside))) + 
-  facet_wrap(~strain_name)
+ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) + 
+  facet_wrap(~strain_name) + 
+  scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
+  ggtitle("Exclude all initially outside range")
 ggsave("output/reductions_exp_outlier.pdf")
+
+# Iterative outside calculation
+outside_datasets2$ticker <- outside_datasets2$rep_st 
+outside_datasets2$outside <- 1
+outside_datasets2168 <- outside_datasets2 %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
+outside_datasets2168$outside168 <- 1
+
+rwoo <- left_join(rw, outside_datasets2 %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
+rwo <- left_join(rwoo, outside_datasets2168 %>% dplyr::select(-c(outside))) %>%
+  mutate(outside_f = ifelse(is.na(outside), ifelse(is.na(outside168),"NA",1),1))
+
+ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) + 
+  facet_wrap(~strain_name) + 
+  scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
+  ggtitle("Iterative exp exclusion")
+ggsave("output/reductions_exp_outlier_iterative.pdf")
 
 
 
@@ -355,7 +433,7 @@ av_all_bys
 
 ## T test of difference
 t.test(mean_strain ~ success, data = av_all_bys_all)
-  
+
 ggplot(av_all_bys, aes(x=success, y = mean_succ)) + geom_bar(stat = "identity", aes(fill = success)) + 
   geom_errorbar(aes(ymin = mean_succ - sd_succ, ymax = mean_succ + sd_succ)) + 
   scale_y_continuous("Mean log reduction") + 
@@ -382,7 +460,7 @@ g2 <- ggplot(av_inoc_succ, aes(x=lab, y = mean_inoc,group = success)) + geom_bar
   scale_y_continuous("Mean log reduction") + 
   scale_fill_discrete("") + 
   theme(legend.position="bottom")
-  
+
 
 ### Lineage
 av_inoc_succ_lin <- succ_go %>% 
