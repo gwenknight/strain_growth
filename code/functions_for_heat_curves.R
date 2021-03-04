@@ -140,7 +140,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   # Draw straight line, assuming peak time = time 0. 
   grad = as.numeric((value_endline - value_startline)/(time_endline - time_startline)) # Gradient of line
   # Only want exponential growth line
-  exp_start <- as.numeric(unlist(ts[which.min(unlist(abs(ts[,Time]-s$lambda.spline))),Time]))
+  exp_start <- as.numeric(unlist(ts[which.min(unlist(abs(ts[,Time]-(s$lambda.spline-1)))),Time]))
   time_step = median(diff(ts$Time)) ## should be constant but some have variation so take normal step size, but should be constant to work in the below
   times_line <- seq(time_startline,exp_start,by = -time_step) # The times for the line (x values)
   
@@ -151,7 +151,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   ### Visualise where peaks are if needed
   # plot(unlist(ts[,Time]),unlist(ts[,value]), type = 'l', xlab = "Time", ylab = "value", xlim = c(-40,25))
   # points(time_startline, value_startline, col = 'black', pch = 19)
-  ## and can plot line against this if needed too 
+  # and can plot line against this if needed too
   # lines(times_line, pred_points_fit, col= "blue")
   
   ### Run through lines. 
@@ -161,7 +161,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   ### Visualise where peaks are if needed
   # plot(unlist(ts[,Time]),unlist(ts[,value]), type = 'l', xlab = "Time", ylab = "value", xlim = c(0,25))
   # points(time_startline, value_startline, col = 'black', pch = 19)
-  
+
   for(i in -40:5){
     time_endline <- i #max(min(ts[,Time])+0.5, time_peaks[1] - 10) # 10 hrs from first peak or at least 30min in to recording data
     value_endline <- 0
@@ -176,12 +176,12 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     pred_points_fit <- grad*(times_line - time_startline) + value_startline # remove times_startline as taking this to be time zero (so can use value_startline as y intercept)
     
     ## and can plot line against this if needed too 
-    # lines(times_line, pred_points_fit, col= "blue")
+    #lines(times_line, pred_points_fit, col= "blue")
     
     #### How far is the predicted straight line from the data? 
     #if(length(pred_points_fit) > 28){leng = 28}else{leng = length(pred_points_fit)}
     integer_times <- ts %>% filter(Time >= (min(times_line)-0.02), Time <= (max(times_line)+0.02))
-    dist <- as.numeric(c(pred_points_fit - unlist(integer_times[,value])))
+    dist <- as.numeric(c(pred_points_fit - rev(unlist(integer_times[,value]))))
     
     # Crossing points
     if(length(which(abs(diff(sign(dist)))==2)) > 2){# if cross more than twice then shoulder

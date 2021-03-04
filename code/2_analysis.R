@@ -163,7 +163,7 @@ ddm$shoulder_cut <- 0
 #### store odd type in main timeseries dataframe
 for(jj in 1:length(u)){ # for each strain
   
-  pp <- param %>% filter(strain_name == u[jj])
+  pp <- param %>% dplyr::filter(strain_name == u[jj])
   ii <- which(ddm$strain == u[jj])
   print(u[jj])
   
@@ -193,7 +193,7 @@ for(jj in 1:length(u)){ # for each strain
     
     ### If have a shoulder then add in new point up to this cut 
     if(pp[ww,"shoulder_point_t"]>0){
-      ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("shoulder_point_t","shoulder_point_v")],1) # label as odd across timeseries
+      ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("timepeak","valpeak")],1) # label as odd across timeseries
     }else{
       ddm[oddv,c("shoulder_point_t","shoulder_point_v","shoulder_cut")] <- c(pp[ww,c("timepeak", "valpeak")],0) # add in time to peak as cut point
     }
@@ -210,8 +210,8 @@ for(jj in 1:length(u)){ # for each strain
   
 }
 
-ddm$odd_type <- factor(ddm$odd_type, levels = c("0","01","02","03","012","013","023","0123"))
-ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","01","02","03","04","012","013","014","0134","034","023","024","0123","0124","01234"))
+ddm$odd_type <- factor(ddm$odd_type, levels = c("0","1","2","3","12","13","23","123"))
+ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","1","2","3","4","12","13","14","134","34","23","24","123","124","234","1234"))
 
 #### Label MACOTRA vs. not
 ddm$source <- "Macotra"

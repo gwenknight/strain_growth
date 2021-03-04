@@ -54,7 +54,7 @@ po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = 
   mutate(rep_st = case_when((ones == 1) ~ 1,
                             (threes == 1)  ~ 3,
                             (twos == 1) ~ 2)) %>% # tries pmax etc didn't work # Labels reps as 1 2 3
-  select(-c(maxx,minn, ones, threes, twos))
+  dplyr::select(-c(maxx,minn, ones, threes, twos))
 
 write.csv(po, "output/param_labelled_repst.csv")
 
@@ -63,7 +63,7 @@ cutoff <- 0.36
 
 pp_strain_names <- po %>%
   group_by(strain_name, rep_st) %>% 
-  mutate(mean_peak_exp_gr = mean(cut_exp),
+  dplyr::mutate(mean_peak_exp_gr = mean(cut_exp),
          mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
          mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
          outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
@@ -72,16 +72,16 @@ pp_strain_names <- po %>%
          remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
   ungroup() %>% 
   group_by(strain_name, rep,drytime) %>% 
-  mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
+  dplyr::mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
   ungroup() %>% 
   group_by(strain_name, rep) %>% 
-  mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
+  dplyr::mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
   ungroup() %>%
-  mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
+  dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
   group_by(strain_name) %>%
-  mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) %>% # n_distinct counts 0 so need to remove
+  dplyr::mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) %>% # n_distinct counts 0 so need to remove
   group_by(strain_name, rep_st, remove_dataset) %>%
-  mutate(mean_peak_exp_gr2 = mean(cut_exp),
+  dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
          mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
          mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
          outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
@@ -89,7 +89,7 @@ pp_strain_names <- po %>%
          max2 = max(diff2), 
          remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
   group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
-  mutate(mean_peak_exp_gr3 = mean(cut_exp),
+  dplyr::mutate(mean_peak_exp_gr3 = mean(cut_exp),
          mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
          mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
          outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
@@ -97,7 +97,7 @@ pp_strain_names <- po %>%
          max3 = max(diff3), 
          remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
   group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
-  mutate(mean_peak_exp_gr4 = mean(cut_exp),
+  dplyr::mutate(mean_peak_exp_gr4 = mean(cut_exp),
          mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
          mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
          outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
@@ -105,18 +105,18 @@ pp_strain_names <- po %>%
          max4 = max(diff4), 
          remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
   ungroup() %>%
-  mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4)
+  dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4)
 
-pp_strain_names %>% select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
+pp_strain_names %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
 
 
 pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>% 
-  select(strain_name, rep_st, drytime, inocl, remove_strain, remove_dataset, remove_dataset2,cut_exp,
+  dplyr::select(strain_name, rep_st, drytime, inocl, remove_strain, remove_dataset, remove_dataset2,cut_exp,
          #        cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside, diff, max, remove_dataset,
          #        mean_peak_exp_gr_m102, mean_peak_exp_gr2, mean_peak_exp_gr_p102, outside2, diff2, max2, remove_dataset2,
          mean_peak_exp_gr_m103, mean_peak_exp_gr3, mean_peak_exp_gr_p103, outside3, diff3, max3, remove_dataset3) %>%
   #       mean_peak_exp_gr_m104, mean_peak_exp_gr4, mean_peak_exp_gr_p104, outside4, diff4, max4, remove_dataset4) %>%
-  filter(strain_name == "11276")
+  filter(strain_name == "11265")
 
 
 
@@ -190,10 +190,12 @@ for(jj in 1:length(all_strains)){ # for each strain
     facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
     scale_color_manual("Odd_type", 
                        breaks = c("0","14","24","34","124","134","05",
-                                  "145","245"),
+                                  "145","245",
+                                  "234","1234","345"),
                        labels = c("None","Peak&Double",
                                   "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","ExpGr",
-                                  "Peak Shoulder&ExpGr","Width Shoulder&ExpGr"),
+                                  "Peak Shoulder&ExpGr","Width Shoulder&ExpGr",
+                                  "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr"),
                        #breaks = c("0","1","2","3","4","5",
                        #                        "12","13","23","123","14",
                        #                        "24","34","124","134","234",
@@ -211,7 +213,7 @@ for(jj in 1:length(all_strains)){ # for each strain
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
     geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
-    geom_point(aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+    geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     ggtitle(all_strains[jj])
   
