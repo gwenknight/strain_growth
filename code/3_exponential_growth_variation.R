@@ -232,11 +232,11 @@ ggplot(pp_strain_names %>% filter(remove_strain == 1), aes(x=inocl, y = cut_exp)
   scale_shape_discrete("Drytime") + 
   scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
   scale_y_continuous("Exponential growth") + 
-  facet_wrap(strain_name ~ rep, nrow = 5) +
+  facet_wrap(strain_name ~ rep, nrow = 3, scales = "free") +
   geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(remove_strain))) +
   geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(remove_strain))) +
   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") + 
-  ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
+  #ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
 ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth_outside.pdf"),width = 10, height = 10)
 
 ggplot(pp_strain_names %>% filter(remove_strain == 0), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +

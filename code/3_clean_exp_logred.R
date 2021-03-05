@@ -116,7 +116,7 @@ pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>%
          #        mean_peak_exp_gr_m102, mean_peak_exp_gr2, mean_peak_exp_gr_p102, outside2, diff2, max2, remove_dataset2,
          mean_peak_exp_gr_m103, mean_peak_exp_gr3, mean_peak_exp_gr_p103, outside3, diff3, max3, remove_dataset3) %>%
   #       mean_peak_exp_gr_m104, mean_peak_exp_gr4, mean_peak_exp_gr_p104, outside4, diff4, max4, remove_dataset4) %>%
-  filter(strain_name == "11265")
+  filter(strain_name == "11271")
 
 
 
@@ -124,30 +124,30 @@ pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>%
 param_expok <- pp_strain_names %>%
   filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
   filter(total_rep_rem == 0) %>% # remove those reps with more than 2 outside
-  #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
-  filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0)
+  filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
+  #filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
 
 ## Which are removed? 
-length(which(pp_strain_names$remove_strain == 1)) # 155 datasets removed due to strain being removed
+length(which(pp_strain_names$remove_strain == 1)) # 102 datasets removed due to strain being removed
 length(which(pp_strain_names$total_rep_rem == 1)) # 4 single reps removed from strains
-length(which(pp_strain_names$outside == 1)) # 237 single datasets removed from strains
+length(which(pp_strain_names$outside == 1)) # 201 single datasets removed from strains
 
 p2 <- pp_strain_names %>% filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
   filter(total_rep_rem == 0)
-length(which(p2$remove_dataset == 1)) # Each of these is remove one dataset and then recalculate the mean
-length(which(p2$remove_dataset2 == 1)) # 
-length(which(p2$remove_dataset3 == 1))
-length(which(p2$remove_dataset4 == 1))
+length(which(p2$remove_dataset == 1)) # 94 Each of these is remove one dataset and then recalculate the mean within a replicate
+length(which(p2$remove_dataset2 == 1)) # 25
+length(which(p2$remove_dataset3 == 1)) # 2
+length(which(p2$remove_dataset4 == 1)) # 0: so we know that we don't need to go any further with the iteration (as it is zero)
 
-length(which(p2$outside == 1)) # 138 single datasets removed from strains if do not recalculate the mean (after exclude those reps and strains)
-length(which(p2$remove_dataset == 1)) + length(which(p2$remove_dataset2 == 1)) + length(which(p2$remove_dataset3 == 1)) + length(which(p2$remove_dataset4 == 1)) # only remove 136 if recalculate mean = 2 extra datasets! 
+length(which(p2$outside == 1)) # 126 single datasets removed from strains if do not recalculate the mean (after exclude those reps and strains)
+length(which(p2$remove_dataset == 1)) + length(which(p2$remove_dataset2 == 1)) + length(which(p2$remove_dataset3 == 1)) + length(which(p2$remove_dataset4 == 1)) # only remove 121
 
 dim(pp_strain_names)[1] - dim(param_expok)[1]
 
 outside_datasets <- pp_strain_names %>% filter(outside == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl, outside)
 outside_datasets2 <- pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl)
 
-length(unique(param_expok$strain_name)) # New with 10% of strain removed
+length(unique(param_expok$strain_name)) # New with 5% of strain removed
 length(unique(param$strain_name)) # Original total
 
 setdiff(unique(param$strain_name),unique(param_expok$strain_name))
@@ -212,7 +212,7 @@ for(jj in 1:length(all_strains)){ # for each strain
                        #            "Peak Double&ExpGr","Width Double&ExpGr","Shoulder Double ExpGr"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
-    #geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
+    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     ggtitle(all_strains[jj])
@@ -241,9 +241,17 @@ for(jj in 1:length(all_strains)){ # for each strain
 #######****** LINEAR MODEL 
 ######****************************######################################################################
 
+### Need to remove those with only 2 datapoints at time 0: perfect line
+#how many? 
+table(table(param_expok %>% filter(drytime == 0) %>% select(strain_name, inocl))) # 62 + 15 = 77... 
+param_expok_filt <- param_expok %>% group_by(strain_name, drytime, rep) %>% 
+  mutate(ndata = n() + ifelse(drytime == 168, 3,0)) %>% # add 3 as only care about little data at time zero
+  filter(ndata > 2)
+
 # What strains have all / some data?
 table(table(pp_strain_names$strain_name)) # Original data 
 table(table(param_expok$strain_name)) # After exponential filtering
+table(table(param_expok_filt$strain_name)) # After exponential filtering
 
 ######****** Predicting **********######################################################################
 ggplot(po, aes(y=inocl,x = timepeak, group = strain_name, colour=factor(rep_st))) + 
@@ -279,7 +287,9 @@ r2_threshold = 0.75
 
 ###########*********** MODEL FIT ********************#########################
 
-reductions_fit <- fit_line_model(reps, strains, param_expok, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+
+reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+
 
 ###########*###########***********###########***********###########***********
 ###########*
@@ -290,7 +300,7 @@ ggplot(reductions_fit$fit, aes(x=strain, y = R2)) +
   ggtitle("R2 value for fit of linear model to inoculum size = a*time_to_peak + b")
 
 ggplot(reductions_fit$fit, aes(x=R2)) + geom_histogram(binwidth = 0.02) +
-  geom_vline(xintercept = 0.9) + 
+  #geom_vline(xintercept = 0.9) + 
   geom_vline(xintercept = 0.75, lty = "dashed") 
 ggsave("plots/fit/cutoff_for_r2.pdf", width = 10, height = 10) # only get this if set R_cut = 0 in above?
 
@@ -299,14 +309,15 @@ fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
 
 dim(reductions_fit$fit)
 dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
-252-242
+dim(reductions_fit$fit) - dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
 
 
-length(unique(param_expok$strain_name)) # 89 into the function
-length(unique(reductions_fit$fit$strain)) # 89 Not filtered on R2
-length(fitted_strains) # 89 Filtered on R2
+length(unique(param_expok_filt$strain_name)) # 92 into the function
+length(unique(reductions_fit$fit$strain)) # 92 Not filtered on R2
+length(fitted_strains) # 83 Filtered on R2
 
 setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))
+setdiff(unique(param_expok_filt$strain_name),unique(reductions_fit$fit$strain))
 setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 
 
@@ -320,20 +331,22 @@ setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 rw <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% pivot_longer(`10^2`:`10^6`) 
 rw$inocl <- as.numeric(substr(rw$name,4,4))
 
+
+#### Can compare which datasets were removed if use straight outside mean calculation or iterative
 # Straight outside calculation
-outside_datasets$ticker <- outside_datasets$rep_st 
-outside_datasets168 <- outside_datasets %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
-outside_datasets168$outside168 <- outside_datasets168$outside
-
-rwoo <- left_join(rw, outside_datasets %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
-rwo <- left_join(rwoo, outside_datasets168 %>% dplyr::select(-c(outside))) %>%
-  mutate(outside_f = ifelse(is.na(outside), ifelse(is.na(outside168),"NA",1),1))
-
-ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) + 
-  facet_wrap(~strain_name) + 
-  scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
-  ggtitle("Exclude all initially outside range")
-ggsave("output/reductions_exp_outlier.pdf")
+# outside_datasets$ticker <- outside_datasets$rep_st 
+# outside_datasets168 <- outside_datasets %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
+# outside_datasets168$outside168 <- outside_datasets168$outside
+# 
+# rwoo <- left_join(rw, outside_datasets %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
+# rwo <- left_join(rwoo, outside_datasets168 %>% dplyr::select(-c(outside))) %>%
+#   mutate(outside_f = ifelse(is.na(outside), ifelse(is.na(outside168),"NA",1),1))
+# 
+# ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) + 
+#   facet_wrap(~strain_name) + 
+#   scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
+#   ggtitle("Exclude all initially outside range")
+# ggsave("output/reductions_exp_outlier.pdf")
 
 # Iterative outside calculation
 outside_datasets2$ticker <- outside_datasets2$rep_st 
@@ -352,8 +365,6 @@ ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) 
 ggsave("output/reductions_exp_outlier_iterative.pdf")
 
 
-
-
 #### Average
 # Take the average over all values
 rwo %>% 
@@ -367,6 +378,7 @@ rwo %>%
 ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x=ticker, y = mean)) + 
   geom_bar(stat = "identity", aes(fill = factor(ticker))) + 
   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd)) + 
+  #geom_point() + 
   facet_wrap(~strain_name) + 
   scale_fill_discrete("Replicate") + 
   scale_x_continuous("Replicate") + 
@@ -386,7 +398,7 @@ repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>%
   filter(!is.na(value))
 
 pdf("plots/final/replicate_variable.pdf")
-hist(repv$value, breaks = seq(0,9,0.2)) 
+hist(repv$value, breaks = seq(0,5,0.2)) 
 dev.off()
 
 ggplot(repv, aes(x=strain_name, y = value)) + geom_point(aes(col = name))
