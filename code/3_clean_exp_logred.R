@@ -179,7 +179,7 @@ for(jj in 1:length(all_strains)){ # for each strain
     wc<-c(wc,intersect(w1,which(ddm_strain$drytime == clean[i,"drytime"])))
   }
   
-  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time < shoulder_point_t, Time > 3.5)
+  dd <- ddm_strain[wc,] %>% group_by(strain, inoc, rep) %>% filter(Time <= shoulder_point_t, Time > 3.5)
   dd$odd_type <- as.character(dd$odd_type)
   ddm_orig_s$odd_type <- as.character(ddm_orig_s$odd_type)
   dd$odd_type_db <- as.character(dd$odd_type_db)
@@ -212,7 +212,7 @@ for(jj in 1:length(all_strains)){ # for each strain
                        #            "Peak Double&ExpGr","Width Double&ExpGr","Shoulder Double ExpGr"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
-    geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
+    #geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     ggtitle(all_strains[jj])

@@ -175,12 +175,12 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
   
   ###### 4 results per strain: (1) log reduction for strain overall (2) each inoculum 
   av_for_strain <- reductions %>% filter(meas == 1) %>% group_by(strain_name, dry)  %>%
-    summarise(mean_strain = mean(mean, na.rm=TRUE), sd_strain = mean(sd, na.rm = TRUE),n_vals = n(),.groups = 'drop')
+    dplyr::summarise(mean_strain = mean(mean, na.rm=TRUE), sd_strain = mean(sd, na.rm = TRUE),n_vals = n(),.groups = 'drop')
   
   av_for_inoculum <- reductions %>% dplyr::select(-c("10^2","10^6")) %>% pivot_longer(cols = c("10^3","10^4","10^5")) %>%
     filter(!is.na(value)) %>%
     group_by(strain_name, dry, name) %>% filter(meas == 1) %>%
-    summarise(mean_inoc = mean(value, na.rm=TRUE), sd_inoc = sd(value, na.rm = TRUE), 
+    dplyr::summarise(mean_inoc = mean(value, na.rm=TRUE), sd_inoc = sd(value, na.rm = TRUE), 
               n_vals = n(),.groups = 'drop')
   
   ### Fit
