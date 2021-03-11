@@ -124,8 +124,8 @@ pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>%
 param_expok <- pp_strain_names %>%
   filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
   filter(total_rep_rem == 0) %>% # remove those reps with more than 2 outside
-  filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
-  #filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
+  #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
+  filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
 
 ## Which are removed? 
 length(which(pp_strain_names$remove_strain == 1)) # 102 datasets removed due to strain being removed
