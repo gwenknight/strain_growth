@@ -151,7 +151,7 @@ length(unique(param_expok$strain_name)) # New with 5% of strain removed
 length(unique(param$strain_name)) # Original total
 
 setdiff(unique(param$strain_name),unique(param_expok$strain_name))
-# Only 9 strains removed: we can't use these are their exponential growth is too variable
+# Only 6 strains removed: we can't use these are their exponential growth is too variable
 
 strains_typical = unique(param_expok$strain_name) # PERFECT strains
 
@@ -313,7 +313,7 @@ dim(reductions_fit$fit) - dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
 
 
 length(unique(param_expok_filt$strain_name)) # 92 into the function
-length(unique(reductions_fit$fit$strain)) # 92 Not filtered on R2
+length(unique(reductions_fit$fit$strain)) # 83 Not filtered on R2
 length(fitted_strains) # 83 Filtered on R2
 
 setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))

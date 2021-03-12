@@ -59,8 +59,8 @@ ddm <-reshape2::melt(dd, id.vars=c("Time","rep","exp"))
 ## Cumulative heat curve in joules
 # Heat flow in muW. 1 W = 1 Joule / Second. 
 # Assume that heat curve output is x muW over that interval of 0.25hrs
-#intervals = 0.25/60/60 # time interval between readings in seconds
-#ddm$value_J <-  ddm$value * intervals # convert to Joules (W = J/s => J = W*s)
+# intervals = 0.25/60/60 # time interval between readings in seconds
+# ddm$value_J <-  ddm$value * intervals # convert to Joules (W = J/s => J = W*s)
 # Want to normalise - i.e. remove baseline value so that starts at 0 but tricky as some negative? not done here
 # ddm <- ddply(ddm,.(variable, rep,exp),transform,csum=cumsum(value_J))
 # ggplot(ddm, aes(x=Time, y = csum, group = interaction(variable, rep, exp))) + geom_line()
