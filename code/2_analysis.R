@@ -211,8 +211,9 @@ for(jj in 1:length(u)){ # for each strain
 }
 
 ## Making odd_type a factor 
-ddm$odd_type <- factor(ddm$odd_type, levels = c("0","1","2","3","12","13","23","123"))
-ddm$odd_type_db <- factor(ddm$odd_type_db, levels = c("0","1","2","3","4","12","13","14","134","34","23","24","123","124","234","1234"))
+ddm$odd_type <- factor(ddm$odd_type, levels = c("0","01","02","03","012","013","023","0123"))
+ddm$odd_type_db <- factor(ddm$odd_type_db, 
+                          levels = c("0","01","02","03","04","012","013","014","0134","034","023","024","0123","0124","0234","01234"))
 
 #### Label MACOTRA vs. not
 ddm$source <- "Macotra"
