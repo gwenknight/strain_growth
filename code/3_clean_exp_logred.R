@@ -498,6 +498,7 @@ g3 <- ggplot(av_inoc_succ_lin, aes(x=lab, y = mean_inoc,group = success)) + geom
   scale_fill_discrete("") + 
   theme(legend.position="bottom")
 
+
 # individual data
 v_inoc_succ_lin <- succ_go %>% 
   filter(r2 > r2_threshold, meas == 1) %>%
@@ -520,6 +521,16 @@ ggsave("plots/final/underlying_all_data.pdf", width = 10, height = 8)
 ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_point(aes(pch = success, col = country),position = position_dodge(0.8), size = 3, alpha = 0.8) + 
   facet_wrap(~lineage) + 
   geom_smooth(aes(group = country, col = country, fill = country)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  #scale_colour_discrete("") + 
+  scale_shape_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_lines.pdf", width = 10, height = 8)
+
+ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_point(aes(),position = position_dodge(0.8), size = 3, alpha = 0.8) + 
+  facet_wrap(~lineage) + 
+  geom_smooth(aes(group = success, col = success, fill = success)) + 
   scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
   scale_y_continuous("Mean log reduction") + 
   #scale_colour_discrete("") + 
@@ -577,15 +588,15 @@ av_inoc_country_lin <- succ_go %>%
   filter(r2 > r2_threshold, meas == 1) %>%
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
-  group_by(strain_name, name, country, lineage) %>% 
+  group_by(strain_name, name, success, country, lineage) %>% 
   summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
   ungroup() %>% 
-  group_by(name, country, lineage) %>% 
+  group_by(name, success, country, lineage) %>% 
   summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
 
 av_inoc_country_lin$lab = as.numeric(substr(av_inoc_country_lin$name,4,4))
 
-ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+g5 <- ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
   facet_wrap(~lineage) + 
   geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
   scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
@@ -593,6 +604,19 @@ ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_ba
   scale_fill_discrete("") + 
   theme(legend.position="bottom")
 ggsave("plots/final/underlying_all_data_country_bar.pdf", width = 10, height = 8)
+
+(g1 + g2) / (g3 + g5) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
+  theme(legend.position='bottom')
+ggsave("plots/final/figure2.pdf", width = 15, height = 15)
+
+ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+  facet_wrap(lineage~success) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_succ_bar.pdf", width = 10, height = 8)
 
 ## For multilevel modelling
 mm <- v_inoc_succ_lin %>%
