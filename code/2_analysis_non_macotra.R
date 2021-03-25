@@ -8,6 +8,7 @@ library(matrixStats) # for row sd calculations
 library(Matrix) # for nnzero function
 library(ggplot2)
 library(patchwork) # for combining plots
+library(zoo)
 theme_set(theme_bw(base_size=24)) # theme setting for plots: black and white (bw) and font size (24)
 
 setwd(here::here())
@@ -25,14 +26,14 @@ ggplot(param %>% filter(strain_name %in% strains), aes(x= inocl, y = timepeak, g
   geom_point(aes(col = strain_name)) + 
   facet_wrap(~strain_name, nrow = 2) + theme(legend.position = "none") + 
   scale_x_continuous(breaks = seq(2:7), labels = function(x) parse(text=paste("10^",x)),"Inoculum", limits = c(1.5,6.5)) + 
-  scale_y_continuous(expression(paste("Time to first peak (", italic(tmax),")")))
+  scale_y_continuous(expression(paste("Time to first peak (", italic(tmax(h)),")")))
 ggsave("plots/final/time_peak_vs_inoculum_strain_col.pdf", width = 12)
 
 
 ga <- ggplot(param %>% filter(strain_name %in% strains), aes(x = inocl, y = timepeak, group = inocl)) + 
   geom_boxplot() + 
   scale_x_continuous(breaks = seq(2:7), labels = function(x) parse(text=paste("10^",x)),"Inoculum", limits = c(1.5,6.5)) + 
-  scale_y_continuous(expression(paste("Time to first peak (", italic(tmax),")")))
+  scale_y_continuous(expression(paste("Time to first peak (", italic(tmax(h)),")")))
 ggsave("plots/final/time_peak_vs_inoculum.pdf")
 
 
@@ -45,9 +46,10 @@ data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
 g1 <- ggplot(data_cs %>% filter(strain == "SA2704"), aes(x=Time, y = value_J, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat curve") +
-  scale_x_continuous(lim = c(0,25)) + 
-  scale_color_discrete("Inoculum")
+  scale_y_continuous("Heat flow (mW)") +
+  scale_x_continuous("Time (h)", lim = c(0,25)) + 
+  scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
+                                              expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
 ### Smooth OD values
 data_od <- data_od %>% group_by(rep, exp, variable, strain, inoc) %>%
@@ -58,24 +60,29 @@ data_od <- data_od %>% group_by(rep, exp, variable, strain, inoc) %>%
 g2 <- ggplot(data_od %>% filter(strain == "SA2704"), aes(x=Time, y = ma_value, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")+ 
-  scale_color_discrete("Inoculum")
+  scale_y_continuous("OD600")+ 
+  scale_x_continuous("Time (h)")+
+  scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
+                                              expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
 g3 <- ggplot(data_od %>% filter(strain == "SA2704"), aes(x=Time, y = differ, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("OD")+ 
-  scale_color_discrete("Inoculum")
-ggsave("proof_of_principle/OD_data_difference.pdf")
+  scale_y_continuous("OD600")+ 
+  scale_x_continuous("Time (h)")+
+  scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
+                                              expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
+ggsave("proof_of_principle/OD_data_difference.png")
 
 ### Cumulate heat flow values
 g4 <- ggplot(data_cs %>% filter(strain == "SA2704"), aes(x=Time, y = csum, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat curve") + 
-  scale_x_continuous(lim = c(0,25)) + 
-  scale_color_discrete("Inoculum") 
+  scale_y_continuous("Heat (mJ)") + 
+  scale_x_continuous("Time (h)", lim = c(0,25)) + 
+  scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
+                                              expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
 gb <- ((g1 + g4) / (g3 + g2)) + plot_layout(guides = 'collect') + plot_annotation(tag_levels = 'A') & theme(legend.position='bottom')
 gb |  ga  
-ggsave("plots/final/linear_OD_vs_CS.pdf",width = 15, height = 10)
+ggsave("plots/final/linear_OD_vs_CS.png",width = 15, height = 10)

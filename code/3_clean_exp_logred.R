@@ -243,7 +243,7 @@ for(jj in 1:length(all_strains)){ # for each strain
 
 ### Need to remove those with only 2 datapoints at time 0: perfect line
 #how many? 
-table(table(param_expok %>% filter(drytime == 0) %>% select(strain_name, inocl))) # 62 + 15 = 77... 
+table(table(param_expok %>% filter(drytime == 0) %>% dplyr::select(strain_name, inocl))) # 62 + 15 = 77... 
 param_expok_filt <- param_expok %>% group_by(strain_name, drytime, rep) %>% 
   mutate(ndata = n() + ifelse(drytime == 168, 3,0)) %>% # add 3 as only care about little data at time zero
   filter(ndata > 2)
@@ -362,7 +362,7 @@ ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) 
   facet_wrap(~strain_name) + 
   scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
   ggtitle("Iterative exp exclusion")
-ggsave("output/reductions_exp_outlier_iterative.pdf")
+ggsave("output/reductions_exp_outlier_iterative.pdf", width = 10, height = 10)
 
 
 #### Average
@@ -383,7 +383,7 @@ ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x
   scale_fill_discrete("Replicate") + 
   scale_x_continuous("Replicate") + 
   scale_y_continuous("Mean log reduction")
-ggsave("plots/final/replicate_variation_all.pdf")
+ggsave("plots/final/replicate_variation_all.pdf", width = 15, height = 15)
 
 
 repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
@@ -397,7 +397,7 @@ repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>%
   pivot_longer(cols = diff1:diff3) %>% 
   filter(!is.na(value))
 
-pdf("plots/final/replicate_variable.pdf")
+pdf("plots/final/replicate_variable.pdf", width = 10, height = 10)
 hist(repv$value, breaks = seq(0,5,0.2)) 
 dev.off()
 
@@ -429,7 +429,8 @@ g1 <- ggplot(av_inoc, aes(x=lab, y = mean_inoc)) + geom_bar(stat="identity") +
   theme(legend.position = "none")
 
 ## Success? 
-succ <- read.csv("data/MACOTRA 100collection success_20210121.csv")
+succ <- read.csv("data/MACOTRA 100collection success_20210121.csv") #Gwen
+#succ <- read.csv2("data/MACOTRA 100collection success_20210121.csv") #Valérie
 succ$strain_name <- as.character(succ$strain)
 
 succ_go <- left_join(reductions_fit$reductions %>% filter(strain_name %in% fitted_strains),succ, by = "strain_name")
@@ -452,7 +453,7 @@ ggplot(av_all_bys, aes(x=success, y = mean_succ)) + geom_bar(stat = "identity", 
   geom_errorbar(aes(ymin = mean_succ - sd_succ, ymax = mean_succ + sd_succ)) + 
   scale_y_continuous("Mean log reduction") + 
   scale_x_discrete("") + theme(legend.position = "none")
-ggsave("plots/fit/succ_unsucc_sd.pdf")
+ggsave("plots/fit/succ_unsucc_sd.pdf", width = 5, height = 5)
 
 
 ## Take the average by inoculum and success
@@ -497,6 +498,7 @@ g3 <- ggplot(av_inoc_succ_lin, aes(x=lab, y = mean_inoc,group = success)) + geom
   scale_fill_discrete("") + 
   theme(legend.position="bottom")
 
+
 # individual data
 v_inoc_succ_lin <- succ_go %>% 
   filter(r2 > r2_threshold, meas == 1) %>%
@@ -514,7 +516,7 @@ ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_poin
   scale_colour_discrete("") + 
   scale_shape_discrete("") + 
   theme(legend.position="bottom")
-ggsave("plots/final/underlying_all_data.pdf")
+ggsave("plots/final/underlying_all_data.pdf", width = 10, height = 8)
 
 ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_point(aes(pch = success, col = country),position = position_dodge(0.8), size = 3, alpha = 0.8) + 
   facet_wrap(~lineage) + 
@@ -525,6 +527,16 @@ ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_poin
   scale_shape_discrete("") + 
   theme(legend.position="bottom")
 ggsave("plots/final/underlying_all_data_country_lines.pdf")
+
+ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_point(aes(),position = position_dodge(0.8), size = 3, alpha = 0.8) + 
+  facet_wrap(~lineage) + 
+  geom_smooth(aes(group = success, col = success, fill = success)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  #scale_colour_discrete("") + 
+  scale_shape_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_lines.pdf", width = 10, height = 8)
 
 
 #### Country and success
@@ -548,20 +560,72 @@ g4 <- ggplot(av_inoc_succ_country, aes(x=lab, y = mean_inoc,group = success)) + 
   scale_fill_discrete("") + 
   theme(legend.position="bottom")
 
-
 (g1 + g2) / (g3 + g4) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
   theme(legend.position='bottom')
-ggsave("plots/final/figure1.pdf", width = 15)
+ggsave("plots/final/figure1.pdf", width = 15, height = 15)
 
+av_inoc_succ_country_lin <- succ_go %>% 
+  filter(r2 > r2_threshold, meas == 1) %>%
+  ungroup() %>% 
+  pivot_longer(`10^3`:`10^5`) %>%
+  group_by(strain_name, name, success, country, lineage) %>% 
+  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(name, success, country, lineage) %>% 
+  summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
+
+av_inoc_succ_country_lin$lab = as.numeric(substr(av_inoc_succ_country_lin$name,4,4))
+
+ggplot(av_inoc_succ_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+  facet_wrap(lineage~success) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_succ_bar.pdf", width = 10, height = 8)
+
+av_inoc_country_lin <- succ_go %>% 
+  filter(r2 > r2_threshold, meas == 1) %>%
+  ungroup() %>% 
+  pivot_longer(`10^3`:`10^5`) %>%
+  group_by(strain_name, name, success, country, lineage) %>% 
+  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(name, success, country, lineage) %>% 
+  summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
+
+av_inoc_country_lin$lab = as.numeric(substr(av_inoc_country_lin$name,4,4))
+
+g5 <- ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+  facet_wrap(~lineage) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_bar.pdf", width = 10, height = 8)
+
+(g1 + g2) / (g3 + g5) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
+  theme(legend.position='bottom')
+ggsave("plots/final/figure2.pdf", width = 15, height = 15)
+
+ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+  facet_wrap(lineage~success) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_succ_bar.pdf", width = 10, height = 8)
 
 ## For multilevel modelling
 mm <- v_inoc_succ_lin %>%
   rename(logred = mean_strain, inoc = name) %>% 
   filter(!is.na(logred)) %>%
   ungroup() %>%
-  mutate(success_bin = ifelse(success == "Successful",1,0)) %>% 
+  mutate(success_bin = ifelse(success == "Epidemic",1,0)) %>% 
   dplyr::select(strain_name, inoc, country, lineage, success, success_bin, logred)
 
 write.csv(mm, "output/mm_final_data.csv")
-
 
