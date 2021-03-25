@@ -516,6 +516,16 @@ ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_poin
   theme(legend.position="bottom")
 ggsave("plots/final/underlying_all_data.pdf")
 
+ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_point(aes(pch = success, col = country),position = position_dodge(0.8), size = 3, alpha = 0.8) + 
+  facet_wrap(~lineage) + 
+  geom_smooth(aes(group = country, col = country, fill = country)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_colour_discrete("") + 
+  scale_shape_discrete("") + 
+  theme(legend.position="bottom")
+ggsave("plots/final/underlying_all_data_country_lines.pdf")
+
 
 #### Country and success
 av_inoc_succ_country <- succ_go %>% 
