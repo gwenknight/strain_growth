@@ -15,6 +15,7 @@ library(Matrix) # for nnzero function
 library(ggplot2)
 library(patchwork) # for combining plots
 library(RColorBrewer)
+library(here)
 theme_set(theme_bw(base_size=14)) # theme setting for plots: black and white (bw) and font size (24)
 
 setwd(here::here())
@@ -287,9 +288,16 @@ r2_threshold = 0.75
 
 ###########*********** MODEL FIT ********************#########################
 
+### RUN first time
+#reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
 
-reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+#write_csv(reductions_fit$reductions, "plots/output_fit/reductions_fit_reductions.csv") # save so can read in later
+#write_csv(reductions_fit$fit, "plots/output_fit/reductions_fit_fit.csv") # save so can read in later
 
+## READ in on subsequent times
+reductions_fit <- c() # initialise
+reductions_fit$reductions <- read_csv("plots/output_fit/reductions_fit_reductions.csv") 
+reductions_fit$fit <- read_csv("plots/output_fit/reductions_fit_fit.csv")
 
 ###########*###########***********###########***********###########***********
 ###########*
@@ -353,6 +361,7 @@ outside_datasets2$ticker <- outside_datasets2$rep_st
 outside_datasets2$outside <- 1
 outside_datasets2168 <- outside_datasets2 %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
 outside_datasets2168$outside168 <- 1
+rw$strain_name <- as.character(rw$strain_name)
 
 rwoo <- left_join(rw, outside_datasets2 %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
 rwo <- left_join(rwoo, outside_datasets2168 %>% dplyr::select(-c(outside))) %>%
@@ -400,6 +409,45 @@ repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>%
 pdf("plots/final/replicate_variable.pdf", width = 10, height = 10)
 hist(repv$value, breaks = seq(0,5,0.2)) 
 dev.off()
+
+# All replicates
+counts <- c()
+for(i in seq(0,3,0.01)){
+  counts <- c(counts, count(repv$value < i))
+}
+perc <- as.data.frame(100*counts / length(repv$value))
+perc$thresh_diff = seq(0,3,0.01)
+colnames(perc) <- c("perct","thresh_diff")
+
+g1 <- ggplot(perc, aes(x=thresh_diff, y = perct)) + geom_point() + 
+  geom_smooth(col = "black") + 
+  scale_x_continuous("Difference between reduction from each replicate") + 
+  scale_y_continuous("Percentage of replicates with this difference") + 
+  geom_hline(yintercept =  c(50,90), lty = "dashed")
+#ggsave("plots/final/variation_between_replicates.pdf")
+
+# Using mean value per strain 
+repvm <- repv %>% group_by(strain_name) %>% 
+  summarise(mean = mean(value))
+
+counts <- c()
+for(i in seq(0,3,0.01)){
+  counts <- c(counts, count(repvm$mean < i))
+}
+perc <- as.data.frame(100*counts / length(repvm$mean))
+perc$thresh_diff = seq(0,3,0.01)
+colnames(perc) <- c("perct","thresh_diff")
+
+g2 <- ggplot(perc, aes(x=thresh_diff, y = perct)) + geom_point() + 
+  geom_smooth(col = "black") + 
+  scale_x_continuous("Mean difference between\nreduction from each replicate\nper strain") + 
+  scale_y_continuous("Percentage of strains with this difference") + 
+  geom_hline(yintercept = c(50,90), lty = "dashed")
+#ggsave("plots/final/variation_between_replicates_meanperstrain.pdf")
+
+g1 + g2 
+ggsave("plots/final/variation_over_reps.pdf")
+
 
 ggplot(repv, aes(x=strain_name, y = value)) + geom_point(aes(col = name))
 
