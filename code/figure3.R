@@ -2,7 +2,7 @@
 
 library(ggplot2)
 library(patchwork)
-theme_set(theme_bw(base_size=14)) # theme setting for plots: black and white (bw) and font size (24)
+theme_set(theme_bw(base_size=24)) # theme setting for plots: black and white (bw) and font size (24)
 
 # DATASET 1 TYPICAL 
 strain <- "Newman" 
@@ -87,4 +87,4 @@ h4 <- ggplot(data4, aes(x = Time, y = value)) +
 #ALL PLOTS
 (h1 + h2) / (h3 + h4) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
   theme(legend.position='bottom')
-ggsave("plots/final/figure3.pdf", width = 20, height = 15)
+ggsave("plots/final/figure3.png", width = 20, height = 15)

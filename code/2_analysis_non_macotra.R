@@ -27,7 +27,7 @@ ggplot(param %>% filter(strain_name %in% strains), aes(x= inocl, y = timepeak, g
   facet_wrap(~strain_name, nrow = 2) + theme(legend.position = "none") + 
   scale_x_continuous(breaks = seq(2:7), labels = function(x) parse(text=paste("10^",x)),"Inoculum", limits = c(1.5,6.5)) + 
   scale_y_continuous(expression(paste("Time to first peak (", italic(tmax(h)),")")))
-ggsave("plots/final/time_peak_vs_inoculum_strain_col.pdf", width = 12)
+ggsave("plots/final/time_peak_vs_inoculum_strain_col.png", width = 12, height = 12)
 
 
 ga <- ggplot(param %>% filter(strain_name %in% strains), aes(x = inocl, y = timepeak, group = inocl)) + 
@@ -48,6 +48,7 @@ g1 <- ggplot(data_cs %>% filter(strain == "SA2704"), aes(x=Time, y = value_J, gr
   facet_wrap(~strain) + 
   scale_y_continuous("Heat flow (mW)") +
   scale_x_continuous("Time (h)", lim = c(0,25)) + 
+  labs(subtitle = "A") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
@@ -62,6 +63,7 @@ g2 <- ggplot(data_od %>% filter(strain == "SA2704"), aes(x=Time, y = ma_value, g
   facet_wrap(~strain) + 
   scale_y_continuous("OD600")+ 
   scale_x_continuous("Time (h)")+
+  labs(subtitle = "B") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
@@ -70,6 +72,7 @@ g3 <- ggplot(data_od %>% filter(strain == "SA2704"), aes(x=Time, y = differ, gro
   facet_wrap(~strain) + 
   scale_y_continuous("OD600")+ 
   scale_x_continuous("Time (h)")+
+  labs(subtitle = "D") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 ggsave("proof_of_principle/OD_data_difference.png")
@@ -80,9 +83,10 @@ g4 <- ggplot(data_cs %>% filter(strain == "SA2704"), aes(x=Time, y = csum, group
   facet_wrap(~strain) + 
   scale_y_continuous("Heat (mJ)") + 
   scale_x_continuous("Time (h)", lim = c(0,25)) + 
+  labs(subtitle = "C") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
 gb <- ((g1 + g4) / (g3 + g2)) + plot_layout(guides = 'collect') + plot_annotation(tag_levels = 'A') & theme(legend.position='bottom')
-gb |  ga  
-ggsave("plots/final/linear_OD_vs_CS.png",width = 15, height = 10)
+(gb |  ga) + plot_layout(guides = 'collect') + plot_annotation(tag_levels = 'A') & theme(legend.position='bottom')
+ggsave("plots/final/linear_OD_vs_CS.pdf",width = 16, height = 10)
