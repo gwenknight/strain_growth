@@ -125,7 +125,7 @@ ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=fact
 #ggplot(gd, aes(x=Time,y=C5)) + geom_line() + ggtitle("Raw data")
 #ggsave(paste0("output/",name,"_C5.pdf"))
 
-### Replace - CHECK VALERIE! 
+### Replace 
 ddm$strain <- 0; ddm$inoc <- 0
 
 ddm[,c("strain_label","inoc_name")]<-colsplit(ddm$variable, "(?<=\\p{L})(?=[\\d+$])", c("char", "digit"))

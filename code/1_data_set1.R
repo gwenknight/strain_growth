@@ -72,33 +72,26 @@ ddm$value <- (ddm$value/1000)
 ## Raw data
 ggplot(subset(ddm,exp=="t0"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("Reference") + scale_y_continuous("Heat (J)")
-ggsave("output/Raw_data_Reference_set1.tiff", width = 15, height = 10)
+#ggsave("output/Raw_data_Reference_set1.tiff", width = 15, height = 10)
 ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("168hr drying") + scale_y_continuous("Heat (J)")
-ggsave("output/Raw_data_168hr drying_set1.tiff", width = 15, height = 10)
+#ggsave("output/Raw_data_168hr drying_set1.tiff", width = 15, height = 10)
 
 
 # Remove the contaminated data
 # REFERENCE
-#w1 <- intersect(which(ddm$variable == "B4"), which(ddm$rep == 27))
-#ddm <-ddm[-c(w1,w2,w3,w4,w5,w7,w8),]
 
 # 24hr drying
-#w1 <- intersect(intersect(which(ddm$variable == "D5"), which(ddm$rep == 46)),which(ddm$exp == "b"))
-#w2 <- intersect(intersect(which(ddm$variable == "E5"), which(ddm$rep == 46)),which(ddm$exp == "b"))
-#ddm <-ddm[-c(w1,w2),]
 
 # 168hr drying
-#w1 <- intersect(intersect(which(ddm$variable == "E3"), which(ddm$rep == 29)),which(ddm$exp == "c"))
-#ddm <-ddm[-c(w1),]
 
 ## Plot tidy data and save 
 ggplot(subset(ddm,exp=="t0"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("Reference") + scale_y_continuous("Heat (J)")
-ggsave("output/Raw_data_Reference_set1_tidy.tiff", width = 15, height = 10)
+#ggsave("output/Raw_data_Reference_set1_tidy.tiff", width = 15, height = 10)
 ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
   facet_wrap(~variable, nrow = 4) + ggtitle("168hr drying") + scale_y_continuous("Heat (J)")
-ggsave("output/Raw_data_168hr drying_set1_tidy.tiff", width = 15, height = 10)
+#ggsave("output/Raw_data_168hr drying_set1_tidy.tiff", width = 15, height = 10)
 
 
 ## Cumulative heat output separate
@@ -125,7 +118,7 @@ ggsave("output/Raw_data_168hr drying_set1_tidy.tiff", width = 15, height = 10)
 #ggplot(gd, aes(x=Time,y=C5)) + geom_line() + ggtitle("Raw data")
 #ggsave(paste0("output/",name,"_C5.pdf"))
 
-### Replace - CHECK VALERIE! 
+### Replace
 ddm$strain <- 0; ddm$inoc <- 0
 
 ddm[,c("strain_label","inoc_name")]<-colsplit(ddm$variable, "(?<=\\p{L})(?=[\\d+$])", c("char", "digit"))

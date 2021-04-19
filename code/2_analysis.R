@@ -25,7 +25,7 @@ source("code/grofit_functions.R") # have copied those we use into this R script
 ## Load in functions for this analysis
 source("code/functions_for_heat_curves.R")
 
-## where is the data? These are the outputs from 1_data_set#.R: standardised all variable names etc in here
+## where is the data? These are the outputs from 1_data_set#.R: standardized all variable names etc in here
 ddm1 <- as.data.table(read.csv("data/ddm_set1.csv")[,-1])
 ddm2 <- as.data.table(read.csv("data/ddm_set2.csv")[,-1])
 ddm3 <- as.data.table(read.csv("data/ddm_set3.csv")[,-1])
@@ -42,7 +42,7 @@ ddm13 <- as.data.table(read.csv("data/ddm_set13.csv")[,-1])
 ddm14 <- as.data.table(read.csv("data/ddm_set14.csv")[,-1])
 ddm <- as.data.frame(rbind(ddm1,ddm2,ddm3,ddm4,ddm5,ddm6,ddm7,ddm8,ddm9,ddm10,ddm11,ddm12,ddm13,ddm14) )
 
-length(unique(ddm$strain)) # 98 in sets 1-13
+length(unique(ddm$strain)) 
 
 
 #### NAME code: how to label output depending on strains being analysed
@@ -134,7 +134,6 @@ colnames(param) <- c("strain_name","rep","drytime","inocl",
                      "cut_exp", "timepeak", "valpeak")
 
 w<-which(param$lag!=0); param <- param[w,] # remove 0 values
-
 dim(param)
 
 #### CHECK FOR ODD BEHAVIOUR

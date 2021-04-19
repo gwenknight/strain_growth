@@ -79,17 +79,10 @@ ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=fact
 
 # Remove the contaminated data
 # REFERENCE
-#w1 <- intersect(which(ddm$variable == "B4"), which(ddm$rep == 27))
-#ddm <-ddm[-c(w1,w2,w3,w4,w5,w7,w8),]
 
-# 24hr drying
-#w1 <- intersect(intersect(which(ddm$variable == "D5"), which(ddm$rep == 46)),which(ddm$exp == "b"))
-#w2 <- intersect(intersect(which(ddm$variable == "E5"), which(ddm$rep == 46)),which(ddm$exp == "b"))
-#ddm <-ddm[-c(w1,w2),]
 
 # 168hr drying
-#w1 <- intersect(intersect(which(ddm$variable == "E3"), which(ddm$rep == 29)),which(ddm$exp == "c"))
-#ddm <-ddm[-c(w1),]
+
 
 ## Plot tidy data and save 
 ggplot(subset(ddm,exp=="t0"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 

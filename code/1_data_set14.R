@@ -78,7 +78,7 @@ ggplot(subset(ddm,exp==168), aes(x=Time,y=value,group = factor(rep),colour=facto
 
 
 
-# Remove the contaminated data: MSSAs
+# Remove the contaminated data
 # REFERENCE
 # 24hr drying
 w1 <- intersect(intersect(which(ddm$variable == "D5"), which(ddm$rep == 46)),which(ddm$exp == 24))
@@ -89,7 +89,7 @@ ddm <-ddm[-c(w1,w2),]
 w1 <- intersect(intersect(which(ddm$variable == "E3"), which(ddm$rep == 29)),which(ddm$exp == 168))
 ddm <-ddm[-c(w1),]
 
-# Remove the contaminated data: MRSAs
+# Remove the contaminated data
 # REFERENCE
 w1 <- intersect(which(ddm$variable == "E5"), which(ddm$rep == 33))
 ddm <-ddm[-c(w1),]

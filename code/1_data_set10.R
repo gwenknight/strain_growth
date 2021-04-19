@@ -79,20 +79,10 @@ ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=fact
 
 # Remove the contaminated data
 # REFERENCE
-#w1 <- intersect(which(ddm$variable == "B4"), which(ddm$rep == 1.1))
-#w2 <- intersect(which(ddm$variable == "B6"), which(ddm$rep == 1.1))
-#w3 <- intersect(which(ddm$variable == "C6"), which(ddm$rep == 26))
-#w4 <- intersect(which(grepl("E",ddm$variable)), which(ddm$rep == 23))
 
-#ddm <-ddm[-c(w1,w2,w3,w4,w5,w7,w8),]
 
 # 1wk drying
-#w1 <- intersect(intersect(which(ddm$variable == "D5"), which(ddm$rep == 1.1)),which(ddm$exp == "b"))
-#w2 <- intersect(intersect(which(ddm$variable == "E5"), which(ddm$rep == 1.1)),which(ddm$exp == "b"))
-#w3 <- intersect(intersect(which(ddm$variable == "D5"), which(ddm$rep == 26)),which(ddm$exp == "b"))
-#w4 <- intersect(intersect(which(ddm$variable == "B5"), which(ddm$rep == 26)),which(ddm$exp == "b"))
 
-#ddm <-ddm[-c(w1,w2),]
 
 ## Plot tidy data and save 
 ggplot(subset(ddm,exp=="t0"), aes(x=Time,y=value,group = factor(rep),colour=factor(rep))) + geom_line(lwd = 1.5) + 
@@ -127,7 +117,7 @@ ggplot(subset(ddm,exp=="t7"), aes(x=Time,y=value,group = factor(rep),colour=fact
 #ggplot(gd, aes(x=Time,y=C5)) + geom_line() + ggtitle("Raw data")
 #ggsave(paste0("output/",name,"_C5.pdf"))
 
-### Replace - CHECK VALERIE! 
+### Replace 
 ddm$strain <- 0; ddm$inoc <- 0
 
 ddm[,c("strain_label","inoc_name")]<-colsplit(ddm$variable, "(?<=\\p{L})(?=[\\d+$])", c("char", "digit"))
