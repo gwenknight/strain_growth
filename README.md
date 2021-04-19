@@ -24,15 +24,15 @@ This generates all the data sources for this paper by standardising the varying 
 Run 2_analysis.R
 
 This needs files 
-"grofit_functions.R" which takes the needed functions from the now unsupported GROFIT package. 
-"functions_for_heat_curves.R" which has the find peaks function and the main function for extracting the parameters. Here ODD is used to characterise any oddities in the curves. Most of this functionality is not used in this paper but is used to characterise differences between the curves (e.g. wide peaks). 
+- "grofit_functions.R" which takes the needed functions from the now unsupported GROFIT package. 
+- "functions_for_heat_curves.R" which has the find peaks function and the main function for extracting the parameters. Here ODD is used to characterise any oddities in the curves. Most of this functionality is not used in this paper but is used to characterise differences between the curves (e.g. wide peaks). 
 
 Returns two files 
-output/YOURNAMECODE_all_time_series_fit_params.csv": time series + whether odd or not + parameter values      
-output/YOURNAMECODE_all_model_fit_params.csv: summary parameters for each time series dataset  
+- output/YOURNAMECODE_all_time_series_fit_params.csv": time series + whether odd or not + parameter values      
+- output/YOURNAMECODE_all_model_fit_params.csv: summary parameters for each time series dataset  
 
 Returns plots
-plot/shoulder_curves: just those strains with a shoulder highlights the point at which they are cut (first cut doesn't always give good time to peak)
+- plot/shoulder_curves: just those strains with a shoulder highlights the point at which they are cut (first cut doesn't always give good time to peak)
 
 
 ### "3_"
