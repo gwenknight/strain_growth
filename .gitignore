@@ -7,3 +7,7 @@
 data_all/
 output/
 plots/
+proof_of_principle/output/
+proof_of_principle_old/
+plots_old/
+output_old/

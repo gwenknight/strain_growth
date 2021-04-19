@@ -30,8 +30,8 @@ source("code/grofit_functions.R") # have copied those we use into this R script
 
 ## Data
 
-data_od_orig <- read_csv("proof_of_principle/ddm_OD.csv")[,-1]
-data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
+data_od_orig <- read_csv("proof_of_principle/data/ddm_OD.csv")[,-1]
+data_cs <- read_csv("proof_of_principle/data/ddm_CS.csv")[,-1]
 
 
 ### Look at data

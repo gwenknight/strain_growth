@@ -39,8 +39,8 @@ ggsave("proof_of_principle/time_peak_vs_inoculum.pdf")
 
 
 ## Data
-data_od <- read_csv("proof_of_principle/ddm_OD.csv")[,-1]
-data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
+data_od <- read_csv("proof_of_principle/data/ddm_OD.csv")[,-1]
+data_cs <- read_csv("proof_of_principle/data/ddm_CS.csv")[,-1]
 
 
 ### Look at data

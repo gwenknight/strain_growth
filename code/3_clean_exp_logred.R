@@ -61,7 +61,7 @@ po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = 
 write.csv(po, "output/param_labelled_repst.csv")
 
 #####*************************** REMOVE THOSE WITH EXPONENTIAL GROWTH OUTSIDE OF RANGE *******************###############
-cutoff <- 0.36
+cutoff <- 0.36 ### Determined by analysis in 3_exponential_growth_variation.R
 
 pp_strain_names <- po %>%
   group_by(strain_name, rep_st) %>% 
