@@ -17,6 +17,7 @@ To do this we used this code to extract key predictive parameters (e.g. time to 
 
 ### Code to data clean: "1_"
 Run 1_data_cleaning.R 
+
 This generates all the data sources for this paper by standardising the varying timeseries data in the data folder. Inspection of the growth curves for potential contamination leads to some data being removed. This can be seen in the plots generated in the individual R code for each data set (data cleaning 1). 
 
 ## Extract parameters: "2_"
