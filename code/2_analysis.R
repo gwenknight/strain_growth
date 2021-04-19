@@ -151,7 +151,7 @@ unique(param$odd_type_db)
 write.csv(param,paste0("output/",name_code,"all_model_fit_params.csv"))
 
 
-######****** ODD behaviour & CUT POINT into main timeseries data ******#################
+######****** ODD behaviour & CUT POINT into main time series data ******#################
 no_odd <- c()
 ddm$odd_type <- "0"
 ddm$odd_type_db <- "0"
@@ -159,7 +159,7 @@ ddm$shoulder_point_t <- 0
 ddm$shoulder_point_v <- 0
 ddm$shoulder_cut <- 0
 
-#### store odd type in main timeseries dataframe
+#### store odd type in main time series dataframe
 for(jj in 1:length(u)){ # for each strain
   
   pp <- param %>% dplyr::filter(strain_name == u[jj])

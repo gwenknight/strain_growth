@@ -1,12 +1,12 @@
 #### Exponential growth variation 
 ## How to choose the threshold for exponential growth? 
 
-library(tidyverse) # library for filtering / summarising data
+library(tidyverse) # library for filtering / summarizing data
 library(matrixStats) # for row sd calculations
-library(Matrix) # for nnzero function
+library(Matrix) # for nonzero function
 library(patchwork) # for plot combinations
 library(here)
-theme_set(theme_bw(base_size=12)) # theme setting for plots: black and white (bw) and font size (24)
+theme_set(theme_bw(base_size=18)) # theme setting for plots: black and white (bw) and font size (24)
 
 setwd(here::here())
 
@@ -87,6 +87,7 @@ pp_all <- pp %>% group_by(thresh, total_outside) %>% # For each threshold and nu
   mutate(tot = sum(ns), perc = 100*ns / tot) # and what percentage of the total is this? 
 
 ## Want to look at number of datasets excluded by drytime and rep
+## Note here that the 34 here is the 1/3 value not the cutoff for exponential growth exclusion
 pp_strain_dryt <- pp %>%
   group_by(strain_name, rep, thresh, drytime) %>% # At each drytime for this strain and rep
   summarise(total_outside_inrep = sum(value), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>% 
@@ -227,17 +228,17 @@ ggsave(paste0("plots/exp_growth/eg_cutoff_from_mean_exponential_growth.pdf"))
 
 
 
-ggplot(pp_strain_names %>% filter(remove_strain == 1), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
-  scale_color_manual("In the limits?", values = c("black","red")) +
+ggplot(pp_strain_names %>% filter(remove_strain == 1), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 2) +
+  scale_color_manual("In the limits?", values = c("black","red"), labels = c("yes", "no")) +
   scale_shape_discrete("Drytime") + 
-  scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
-  scale_y_continuous("Exponential growth") + 
+  scale_x_continuous("Inoculum", lim = c(2.8, 5.2), breaks = c(3,4,5)) + 
+  scale_y_continuous("Maximal exponential growth rate") + 
   facet_wrap(strain_name ~ rep, nrow = 3, scales = "free") +
   geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(remove_strain))) +
   geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") + 
+  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") 
   #ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
-ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth_outside.pdf"),width = 10, height = 10)
+ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth_outside.pdf"),width = 14, height = 10)
 
 ggplot(pp_strain_names %>% filter(remove_strain == 0), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
   scale_color_manual("In the limits?", values = c("black","red")) +

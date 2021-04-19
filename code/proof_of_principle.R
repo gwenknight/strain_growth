@@ -38,8 +38,8 @@ data_cs <- read_csv("proof_of_principle/ddm_CS.csv")[,-1]
 g1 <- ggplot(data_cs, aes(x=Time, y = value_J, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat flow curve") +
-  scale_x_continuous(lim = c(0,25)) + 
+  scale_y_continuous("Heat flow curve (muW)") +
+  scale_x_continuous(lim = c(0,25), "Time (h)") + 
   scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
                                                                      str2expression("10^4"),str2expression("10^5"),
                                                                      str2expression("10^6"))) 
@@ -49,6 +49,7 @@ ggplot(data_od_orig, aes(x=Time, y = value, group = interaction(rep, inoc))) +
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
   scale_y_continuous("OD")+ 
+  scale_x_continuous("Time (h)") + 
   scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
                                                                      str2expression("10^4"),str2expression("10^5"),
                                                                      str2expression("10^6"))) 
@@ -64,7 +65,8 @@ data_od <- data_od_orig %>% group_by(rep, exp, variable, strain, inoc) %>%
 g2 <- ggplot(data_od, aes(x=Time, y = ma_value, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Optical density (600 nm)")+ 
+  scale_y_continuous("Optical density (600 nm)") +
+  scale_x_continuous("Time (h)") + 
   scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
                                                                      str2expression("10^4"),str2expression("10^5"),
                                                                      str2expression("10^6"))) 
@@ -74,6 +76,7 @@ g3 <- ggplot(data_od, aes(x=Time, y = differ, group = interaction(rep, inoc))) +
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
   scale_y_continuous("Difference in optical density (600 nm) per time step")+ 
+  scale_x_continuous("Time (h)") + 
   scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
                                                                      str2expression("10^4"),str2expression("10^5"),
                                                                      str2expression("10^6"))) 
@@ -83,8 +86,8 @@ ggsave("proof_of_principle/OD_data_difference.pdf")
 g4 <- ggplot(data_cs, aes(x=Time, y = csum, group = interaction(rep, inoc))) + 
   geom_line(aes(col = factor(inoc))) + 
   facet_wrap(~strain) + 
-  scale_y_continuous("Heat flow curve") + 
-  scale_x_continuous(lim = c(0,25)) + 
+  scale_y_continuous("Heat flow curve (muW)") + 
+  scale_x_continuous(lim = c(0,25), "Time (h)") + 
   scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
                                                                      str2expression("10^4"),str2expression("10^5"),
                                                                      str2expression("10^6"))) 
@@ -225,15 +228,15 @@ ggplot(data_all, aes(x=Time, y = value_comp, group = interaction(rep, inoc, exp)
   facet_grid(exp~strain, scales = "free") + 
   geom_line(data = data_all %>% group_by(strain, rep, exp, variable) %>% filter(Time <= shoulder_point_t),aes(col = factor(inoc))) + 
   geom_point(data = data_all, aes(x=shoulder_point_t, y = shoulder_point_v)) + 
-  scale_x_continuous(lim = c(0,25)) + 
-  scale_y_continuous("Value for comparison (OD (600nm) or heat flow value)") + 
+  scale_x_continuous(lim = c(0,25), "Time (h)") + 
+  scale_y_continuous("Value for comparison (OD (600nm) or heat flow value (muW))") + 
   scale_color_discrete("Inoculum", breaks = c(2,3,4,5,6), labels = c(str2expression("10^2"),str2expression("10^3"),
                                                                      str2expression("10^4"),str2expression("10^5"),
                                                                      str2expression("10^6"))) 
 ggsave("proof_of_principle/od_vs_cs_comparison.pdf", width = 10, height = 10)  
 
 param %>% ungroup() %>% dplyr::select(strain_name, inocl, rep, experiment, timepeak) %>% pivot_wider(names_from = experiment, values_from = timepeak) %>%
-  ggplot(aes(x=OD, y = CS)) + geom_point() + 
+  ggplot(aes(x=OD, y = `Heat flow`)) + geom_point() + 
   geom_abline(intercept = 0, slope = 1) + 
   scale_y_continuous(lim = c(0,25))
 ggsave("proof_of_principle/od_vs_cs_linear.pdf")
@@ -243,7 +246,7 @@ corr <- c()
 for(i in unique(param$strain_name)){
   corr <- rbind(corr, 
                 c(i, round(cor(param %>% filter(strain_name == i, experiment == "OD") %>% dplyr::select(timepeak),
-            param %>% filter(strain_name == i, experiment == "CS") %>% dplyr::select(timepeak)),2)))
+            param %>% filter(strain_name == i, experiment == "Heat flow") %>% dplyr::select(timepeak)),2)))
 }
 
 corr

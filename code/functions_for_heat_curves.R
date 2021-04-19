@@ -1,4 +1,4 @@
-#### Function to 
+#### Functions to extract key parameters. 
 
 ### Find peaks function: from https://github.com/stas-g/findPeaks
 # if bigger than "m" number of points either side of it
@@ -37,7 +37,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   ## thresh_wide = 90: % what is a wide peak? 
   ## plot = 0:  don't plot. 1 to plot
   ## plot_where: location for files to output to  
-  ## early_cut: for heat flow, remove the first 3hrs of data 
+  ## early_cut: for heat flow, remove the first 3.5hrs of data 
   
   ## is this strain replicate ODD? Set all ODD indicators to zero initially
   odd_peak <- 0 # 0 = one peak
@@ -292,7 +292,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
       cut_point_t <- time_max_heat_flow; cut_point_v <- value_max_heat_flow;
     }
   
-  # NEW TS: cut up to first peak or shoulder 
+  # NEW Time series generated: cut up to first peak or shoulder 
   #print(paste0("Early cut = ",early_cut))
   ts <- ts %>% 
     filter(Time > early_cut) %>% # cut off first 3hrs 

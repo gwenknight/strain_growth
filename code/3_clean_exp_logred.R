@@ -20,6 +20,7 @@ theme_set(theme_bw(base_size=14)) # theme setting for plots: black and white (bw
 
 setwd(here::here())
 
+# Read in code for linear model fitting
 source("code/function_linear_model.R")
 
 #####*************************** READ IN DATA *******************###############
