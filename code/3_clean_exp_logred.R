@@ -112,6 +112,7 @@ pp_strain_names <- po %>%
 pp_strain_names %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
 
 
+### Have a look at the data for a single strain (here 11271)
 pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>% 
   dplyr::select(strain_name, rep_st, drytime, inocl, remove_strain, remove_dataset, remove_dataset2,cut_exp,
          #        cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside, diff, max, remove_dataset,
@@ -242,6 +243,8 @@ for(jj in 1:length(all_strains)){ # for each strain
 ######****************************######################################################################
 #######****** LINEAR MODEL 
 ######****************************######################################################################
+dir.create(file.path(here(), "plots/linear_fit/"),showWarnings = FALSE)
+dir.create(file.path(here(), "plots/output_fit/"),showWarnings = FALSE)
 
 ### Need to remove those with only 2 datapoints at time 0: perfect line
 #how many? 
@@ -253,14 +256,14 @@ param_expok_filt <- param_expok %>% group_by(strain_name, drytime, rep) %>%
 # What strains have all / some data?
 table(table(pp_strain_names$strain_name)) # Original data 
 table(table(param_expok$strain_name)) # After exponential filtering
-table(table(param_expok_filt$strain_name)) # After exponential filtering
+table(table(param_expok_filt$strain_name)) # After filtering for more than 2 datasets at baseline
 
 ######****** Predicting **********######################################################################
 ggplot(po, aes(y=inocl,x = timepeak, group = strain_name, colour=factor(rep_st))) + 
   geom_point(size = 2) + facet_wrap(~strain_name) + 
   scale_x_continuous("Time to peak") + scale_y_continuous("Inoculum size (10^x)") + 
   scale_color_discrete("Experiment") 
-ggsave(paste0("plots/fit/time_to_peak_all.pdf"), width = 16, height =10 )
+ggsave(paste0("plots/linear_fit/time_to_peak_all.pdf"), width = 16, height =10 )
 
 ### PLOT variation in other indicators
 #ggplot(param_typical, aes(y=inocl,x = v_m_h_flow, group = strain_name,colour=rep)) + geom_point() + facet_wrap(~strain_name)
@@ -277,7 +280,7 @@ ggplot(param_expok, aes(x=timepeak,y = log10(scalar), group = strain_name, colou
   geom_point(size = 3) + facet_wrap(~strain_name) + 
   scale_y_continuous("Log(inoculum)") + scale_x_continuous("Time to max heat flow (h)") + 
   scale_color_discrete("Experiment", labels = c("Baseline","168hr drying")) 
-ggsave(paste0("plots/fit/time_to_peak_all_as_linear_model.pdf"), width = 20, height = 20)
+ggsave(paste0("plots/linear_fit/time_to_peak_all_as_linear_model.pdf"), width = 20, height = 20)
 
 #### Fit linear model 
 # Remove 10^2 and 10^6: not for reduction analysis
@@ -290,15 +293,15 @@ r2_threshold = 0.75
 ###########*********** MODEL FIT ********************#########################
 
 ### RUN first time
-#reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
-
-#write_csv(reductions_fit$reductions, "plots/output_fit/reductions_fit_reductions.csv") # save so can read in later
-#write_csv(reductions_fit$fit, "plots/output_fit/reductions_fit_fit.csv") # save so can read in later
+# reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+# 
+# write_csv(reductions_fit$reductions, "plots/linear_fit/reductions_fit_reductions.csv") # save so can read in later
+# write_csv(reductions_fit$fit, "plots/linear_fit/reductions_fit_fit.csv") # save so can read in later
 
 ## READ in on subsequent times
 reductions_fit <- c() # initialise
-reductions_fit$reductions <- read_csv("plots/output_fit/reductions_fit_reductions.csv") 
-reductions_fit$fit <- read_csv("plots/output_fit/reductions_fit_fit.csv")
+reductions_fit$reductions <- read_csv("plots/linear_fit/reductions_fit_reductions.csv") 
+reductions_fit$fit <- read_csv("plots/linear_fit/reductions_fit_fit.csv")
 
 ###########*###########***********###########***********###########***********
 ###########*
@@ -311,19 +314,20 @@ ggplot(reductions_fit$fit, aes(x=strain, y = R2)) +
 ggplot(reductions_fit$fit, aes(x=R2)) + geom_histogram(binwidth = 0.02) +
   #geom_vline(xintercept = 0.9) + 
   geom_vline(xintercept = 0.75, lty = "dashed") 
-ggsave("plots/fit/cutoff_for_r2.pdf", width = 10, height = 10) # only get this if set R_cut = 0 in above?
+ggsave("plots/linear_fit/cutoff_for_r2.pdf", width = 10, height = 10) # only get this if set R_cut = 0 in above?
 
 fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
   dplyr::select(strain) %>% unlist() %>% as.character() %>% unique()# but not all the replicates for these strains
 
+# How many remove by filtering on R2? 
 dim(reductions_fit$fit)
 dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
-dim(reductions_fit$fit) - dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
+dim(reductions_fit$fit) - dim(reductions_fit$fit %>% filter(R2 > r2_threshold)) # 7 datasets 
 
 
 length(unique(param_expok_filt$strain_name)) # 92 into the function
-length(unique(reductions_fit$fit$strain)) # 83 Not filtered on R2
-length(fitted_strains) # 83 Filtered on R2
+length(unique(reductions_fit$fit$strain)) 
+length(fitted_strains) # 86 Filtered on R2
 
 setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))
 setdiff(unique(param_expok_filt$strain_name),unique(reductions_fit$fit$strain))
@@ -372,7 +376,7 @@ ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) 
   facet_wrap(~strain_name) + 
   scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
   ggtitle("Iterative exp exclusion")
-ggsave("output/reductions_exp_outlier_iterative.pdf", width = 10, height = 10)
+ggsave("plots/exp_growth/reductions_exp_outlier_iterative.pdf", width = 10, height = 10)
 
 
 #### Average
@@ -393,7 +397,7 @@ ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x
   scale_fill_discrete("Replicate") + 
   scale_x_continuous("Replicate") + 
   scale_y_continuous("Mean log reduction")
-ggsave("plots/final/replicate_variation_all.pdf", width = 15, height = 15)
+ggsave("plots/linear_fit/replicate_variation_all.pdf", width = 15, height = 15)
 
 
 repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
@@ -407,7 +411,7 @@ repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>%
   pivot_longer(cols = diff1:diff3) %>% 
   filter(!is.na(value))
 
-pdf("plots/final/replicate_variable.pdf", width = 10, height = 10)
+pdf("plots/linear_fit/replicate_variable.pdf", width = 10, height = 10)
 hist(repv$value, breaks = seq(0,5,0.2)) 
 dev.off()
 
@@ -425,7 +429,6 @@ g1 <- ggplot(perc, aes(x=thresh_diff, y = perct)) + geom_point() +
   scale_x_continuous("Difference between reduction from each replicate") + 
   scale_y_continuous("Percentage of replicates with this difference") + 
   geom_hline(yintercept =  c(50,90), lty = "dashed")
-#ggsave("plots/final/variation_between_replicates.pdf")
 
 # Using mean value per strain 
 repvm <- repv %>% group_by(strain_name) %>% 
@@ -444,13 +447,9 @@ g2 <- ggplot(perc, aes(x=thresh_diff, y = perct)) + geom_point() +
   scale_x_continuous("Mean difference between\nreduction from each replicate\nper strain") + 
   scale_y_continuous("Percentage of strains with this difference") + 
   geom_hline(yintercept = c(50,90), lty = "dashed")
-#ggsave("plots/final/variation_between_replicates_meanperstrain.pdf")
 
 g1 + g2 
-ggsave("plots/final/variation_over_reps.pdf")
-
-
-ggplot(repv, aes(x=strain_name, y = value)) + geom_point(aes(col = name))
+ggsave("plots/linear_fit/variation_over_reps.pdf")
 
 # Take the average by inoculum 
 av_inoc_all <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
@@ -478,8 +477,7 @@ g1 <- ggplot(av_inoc, aes(x=lab, y = mean_inoc)) + geom_bar(stat="identity") +
   theme(legend.position = "none")
 
 ## Success? 
-succ <- read.csv("data/MACOTRA 100collection success_20210121.csv") #Gwen
-#succ <- read.csv2("data/MACOTRA 100collection success_20210121.csv") #Valérie
+succ <- read_csv("data/MACOTRA 100collection success_20210121.csv")
 succ$strain_name <- as.character(succ$strain)
 
 succ_go <- left_join(reductions_fit$reductions %>% filter(strain_name %in% fitted_strains),succ, by = "strain_name")
@@ -502,7 +500,7 @@ ggplot(av_all_bys, aes(x=success, y = mean_succ)) + geom_bar(stat = "identity", 
   geom_errorbar(aes(ymin = mean_succ - sd_succ, ymax = mean_succ + sd_succ)) + 
   scale_y_continuous("Mean log reduction") + 
   scale_x_discrete("") + theme(legend.position = "none")
-ggsave("plots/fit/succ_unsucc_sd.pdf", width = 5, height = 5)
+ggsave("plots/linear_fit/succ_unsucc_sd.pdf", width = 5, height = 5)
 
 
 ## Take the average by inoculum and success
