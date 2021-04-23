@@ -63,61 +63,109 @@ write.csv(po, "output/param_labelled_repst.csv")
 #####*************************** REMOVE THOSE WITH EXPONENTIAL GROWTH OUTSIDE OF RANGE *******************###############
 cutoff <- 0.36 ### Determined by analysis in 3_exponential_growth_variation.R
 
+# OLD filtered just on the first outside classification
+# pp_strain_names <- po %>%
+#   group_by(strain_name, rep_st) %>% 
+#   dplyr::mutate(mean_peak_exp_gr = mean(cut_exp),
+#                 mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
+#                 mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
+#                 outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
+#                 diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
+#                 max = max(diff), 
+#                 remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
+#   ungroup() %>% 
+#   group_by(strain_name, rep,drytime) %>% 
+#   dplyr::mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
+#   ungroup() %>% 
+#   group_by(strain_name, rep) %>% 
+#   dplyr::mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
+#   ungroup() %>%
+#   dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
+#   group_by(strain_name) %>%
+#   dplyr::mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) %>% # n_distinct counts 0 so need to remove
+#   group_by(strain_name, rep_st, remove_dataset) %>%
+#   dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
+#                 mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
+#                 mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
+#                 outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
+#                 diff2 = ifelse(outside2 == 1, abs(cut_exp - mean_peak_exp_gr2), 0),
+#                 max2 = max(diff2), 
+#                 remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
+#   group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
+#   dplyr::mutate(mean_peak_exp_gr3 = mean(cut_exp),
+#                 mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
+#                 mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
+#                 outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
+#                 diff3 = ifelse(outside3 == 1, abs(cut_exp - mean_peak_exp_gr3), 0),
+#                 max3 = max(diff3), 
+#                 remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
+#   group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
+#   dplyr::mutate(mean_peak_exp_gr4 = mean(cut_exp),
+#                 mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
+#                 mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
+#                 outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
+#                 diff4 = ifelse(outside4 == 1, abs(cut_exp - mean_peak_exp_gr4), 0),
+#                 max4 = max(diff4), 
+#                 remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
+#   ungroup() %>%
+#   dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4)
+
+## New filters on the new iterative removal, so the "remove a replicate" happens later
 pp_strain_names <- po %>%
   group_by(strain_name, rep_st) %>% 
   dplyr::mutate(mean_peak_exp_gr = mean(cut_exp),
-         mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
-         mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
-         outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
-         diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
-         max = max(diff), 
-         remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
+                mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
+                mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
+                outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
+                diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
+                max = max(diff), 
+                remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
   ungroup() %>% 
+  group_by(strain_name, rep_st, remove_dataset) %>%
+  dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
+                mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
+                mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
+                outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
+                diff2 = ifelse(outside2 == 1, abs(cut_exp - mean_peak_exp_gr2), 0),
+                max2 = max(diff2), 
+                remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
+  group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
+  dplyr::mutate(mean_peak_exp_gr3 = mean(cut_exp),
+                mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
+                mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
+                outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
+                diff3 = ifelse(outside3 == 1, abs(cut_exp - mean_peak_exp_gr3), 0),
+                max3 = max(diff3), 
+                remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
+  group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
+  dplyr::mutate(mean_peak_exp_gr4 = mean(cut_exp),
+                mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
+                mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
+                outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
+                diff4 = ifelse(outside4 == 1, abs(cut_exp - mean_peak_exp_gr4), 0),
+                max4 = max(diff4), 
+                remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
+  ungroup() %>%
+  dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4) %>%
   group_by(strain_name, rep,drytime) %>% 
-  dplyr::mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
+  dplyr::mutate(total_outside_inrep = sum(remove_dataset_exp_iter), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
   ungroup() %>% 
   group_by(strain_name, rep) %>% 
   dplyr::mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
   ungroup() %>%
-  dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
-  group_by(strain_name) %>%
-  dplyr::mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) %>% # n_distinct counts 0 so need to remove
-  group_by(strain_name, rep_st, remove_dataset) %>%
-  dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
-         mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
-         mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
-         outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
-         diff2 = ifelse(outside2 == 1, abs(cut_exp - mean_peak_exp_gr2), 0),
-         max2 = max(diff2), 
-         remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
-  group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
-  dplyr::mutate(mean_peak_exp_gr3 = mean(cut_exp),
-         mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
-         mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
-         outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
-         diff3 = ifelse(outside3 == 1, abs(cut_exp - mean_peak_exp_gr3), 0),
-         max3 = max(diff3), 
-         remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
-  group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
-  dplyr::mutate(mean_peak_exp_gr4 = mean(cut_exp),
-         mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
-         mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
-         outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
-         diff4 = ifelse(outside4 == 1, abs(cut_exp - mean_peak_exp_gr4), 0),
-         max4 = max(diff4), 
-         remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
-  ungroup() %>%
-  dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4)
+  dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) 
+  #group_by(strain_name) %>%
+  #dplyr::mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
 
 pp_strain_names %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
 
 
-### Have a look at the data for a single strain (here 11271)
-pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>% 
+### Have a look at the data for a single strain (here 11271). Keep strains if only one rep
+pp_strain_names %>% filter(total_rep_rem == 0) %>% 
   dplyr::select(strain_name, rep_st, drytime, inocl, remove_strain, remove_dataset, remove_dataset2,cut_exp,
-         #        cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside, diff, max, remove_dataset,
-         #        mean_peak_exp_gr_m102, mean_peak_exp_gr2, mean_peak_exp_gr_p102, outside2, diff2, max2, remove_dataset2,
-         mean_peak_exp_gr_m103, mean_peak_exp_gr3, mean_peak_exp_gr_p103, outside3, diff3, max3, remove_dataset3) %>%
+                #        cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside, diff, max, remove_dataset,
+                #        mean_peak_exp_gr_m102, mean_peak_exp_gr2, mean_peak_exp_gr_p102, outside2, diff2, max2, remove_dataset2,
+                mean_peak_exp_gr_m103, mean_peak_exp_gr3, mean_peak_exp_gr_p103, outside3, diff3, max3, remove_dataset3) %>%
   #       mean_peak_exp_gr_m104, mean_peak_exp_gr4, mean_peak_exp_gr_p104, outside4, diff4, max4, remove_dataset4) %>%
   filter(strain_name == "11271")
 
@@ -125,14 +173,15 @@ pp_strain_names %>% filter(remove_strain == 0, total_rep_rem == 0) %>%
 
 #### Remove those with exponential values outside the above range
 param_expok <- pp_strain_names %>%
-  filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
+  #filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps: keep these now
   filter(total_rep_rem == 0) %>% # remove those reps with more than 2 outside
   #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
-  filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
+  #filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
+  filter(remove_dataset_exp_iter == 0) # same as above line: this is the sum of each of these indices
 
 ## Which are removed? 
 length(which(pp_strain_names$remove_strain == 1)) # 102 datasets removed due to strain being removed
-length(which(pp_strain_names$total_rep_rem == 1)) # 4 single reps removed from strains
+length(which(pp_strain_names$total_rep_rem > 0)) # 4 single reps removed from strains
 length(which(pp_strain_names$outside == 1)) # 201 single datasets removed from strains
 
 p2 <- pp_strain_names %>% filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
@@ -147,11 +196,18 @@ length(which(p2$remove_dataset == 1)) + length(which(p2$remove_dataset2 == 1)) +
 
 dim(pp_strain_names)[1] - dim(param_expok)[1]
 
-outside_datasets <- pp_strain_names %>% filter(outside == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl, outside)
-outside_datasets2 <- pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% dplyr::select(strain_name, rep_st, drytime, inocl)
+outside_datasets <- pp_strain_names %>% filter(outside == 1) %>% dplyr::select(strain_name, rep, drytime, inocl, outside)
+outside_datasets2 <- pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% 
+  dplyr::select(strain_name, rep, drytime, inocl,remove_dataset_exp_iter, outside)
 
 length(unique(param_expok$strain_name)) # New with 5% of strain removed
 length(unique(param$strain_name)) # Original total
+
+data_removed <- read_csv("output/strains_removed.csv")
+data_removed$strain_name <- as.character(data_removed$strain_name)
+ll <- left_join(data_removed, outside_datasets2, by = c("strain_name", "rep","inocl","drytime"))
+write_csv(ll, "output/new_strains_removed.csv")
+outside_reps <- pp_strain_names %>% filter(rep_dt_remove == 1) %>% dplyr::select(strain_name, rep, drytime, inocl, outside, rep_dt_remove)
 
 setdiff(unique(param$strain_name),unique(param_expok$strain_name))
 # Only 6 strains removed: we can't use these are their exponential growth is too variable

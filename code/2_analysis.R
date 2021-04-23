@@ -219,6 +219,11 @@ ddm$source <- "Macotra"
 w<-which(ddm$strain %in% c("Newman","RWW12","SA3297","SA2704","RWW146","SAC042W", "Mu50", "M116"))
 ddm[w,"source"] <- "Other"
 
+param$source <- "Macotra"
+w<-which(param$strain %in% c("Newman","RWW12","SA3297","SA2704","RWW146","SAC042W", "Mu50", "M116"))
+param[w,"source"] <- "Other"
+
+
 ##### Save output 
 write.csv(ddm,paste0("output/",name_code,"all_time_series_fit_params.csv"))
 
