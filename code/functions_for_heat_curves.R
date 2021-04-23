@@ -106,7 +106,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
       keep_time_far_apart <- which(abs(time_peaks_diff) > 5) 
       
       if(length(keep_time_far_apart) >= 1){odd_peak <- 1} # if multiple peaks
-      if(any(ts[peaks_index,value] < 0.001)){odd_peak <- 1} # or if peak low
+      #if(any(ts[peaks_index,value] < 0.001)){odd_peak <- 1} # or if peak low
       
       # If close and same height (90% of tallest) then odd (peak decline plateau decline OK)
       close_peaks <- which(abs(time_peaks_diff) <= 5)

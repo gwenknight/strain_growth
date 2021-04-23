@@ -159,58 +159,36 @@ pp_strain_names <- po %>%
 
 pp_strain_names %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
 
-
-### Have a look at the data for a single strain (here 11271). Keep strains if only one rep
-pp_strain_names %>% filter(total_rep_rem == 0) %>% 
-  dplyr::select(strain_name, rep_st, drytime, inocl, remove_strain, remove_dataset, remove_dataset2,cut_exp,
-                #        cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside, diff, max, remove_dataset,
-                #        mean_peak_exp_gr_m102, mean_peak_exp_gr2, mean_peak_exp_gr_p102, outside2, diff2, max2, remove_dataset2,
-                mean_peak_exp_gr_m103, mean_peak_exp_gr3, mean_peak_exp_gr_p103, outside3, diff3, max3, remove_dataset3) %>%
-  #       mean_peak_exp_gr_m104, mean_peak_exp_gr4, mean_peak_exp_gr_p104, outside4, diff4, max4, remove_dataset4) %>%
-  filter(strain_name == "11271")
-
-
-
 #### Remove those with exponential values outside the above range
 param_expok <- pp_strain_names %>%
   #filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps: keep these now
   filter(total_rep_rem == 0) %>% # remove those reps with more than 2 outside
-  #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean
+  #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean: no longer using
   #filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
   filter(remove_dataset_exp_iter == 0) # same as above line: this is the sum of each of these indices
 
 ## Which are removed? 
-length(which(pp_strain_names$remove_strain == 1)) # 102 datasets removed due to strain being removed
-length(which(pp_strain_names$total_rep_rem > 0)) # 4 single reps removed from strains
-length(which(pp_strain_names$outside == 1)) # 201 single datasets removed from strains
+dim(pp_strain_names) # 1739 datasets initially
+length(which(pp_strain_names$remove_strain == 1)) # 0 strains are removed: some only have one rep remaining though
+length(which(pp_strain_names$remove_dataset_exp_iter == 1)) # 171 single datasets removed from strains as outside range
+length(which(pp_strain_names$total_rep_rem > 0)) # A total of 228 datasets removed due to having to remove the whole rep (includes some of the 171)
 
-p2 <- pp_strain_names %>% filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps
-  filter(total_rep_rem == 0)
 length(which(p2$remove_dataset == 1)) # 94 Each of these is remove one dataset and then recalculate the mean within a replicate
 length(which(p2$remove_dataset2 == 1)) # 25
 length(which(p2$remove_dataset3 == 1)) # 2
 length(which(p2$remove_dataset4 == 1)) # 0: so we know that we don't need to go any further with the iteration (as it is zero)
 
-length(which(p2$outside == 1)) # 126 single datasets removed from strains if do not recalculate the mean (after exclude those reps and strains)
-length(which(p2$remove_dataset == 1)) + length(which(p2$remove_dataset2 == 1)) + length(which(p2$remove_dataset3 == 1)) + length(which(p2$remove_dataset4 == 1)) # only remove 121
+dim(pp_strain_names)[1] - dim(param_expok)[1] # total number of datasets removed this is the 171 single datasets + extra removed as not enough with the replicate
 
-dim(pp_strain_names)[1] - dim(param_expok)[1]
-
-outside_datasets <- pp_strain_names %>% filter(outside == 1) %>% dplyr::select(strain_name, rep, drytime, inocl, outside)
-outside_datasets2 <- pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% 
+outside_datasets <- pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% 
   dplyr::select(strain_name, rep, drytime, inocl,remove_dataset_exp_iter, outside)
 
+# No strains are removed
 length(unique(param_expok$strain_name)) # New with 5% of strain removed
 length(unique(param$strain_name)) # Original total
 
-data_removed <- read_csv("output/strains_removed.csv")
-data_removed$strain_name <- as.character(data_removed$strain_name)
-ll <- left_join(data_removed, outside_datasets2, by = c("strain_name", "rep","inocl","drytime"))
-write_csv(ll, "output/new_strains_removed.csv")
-outside_reps <- pp_strain_names %>% filter(rep_dt_remove == 1) %>% dplyr::select(strain_name, rep, drytime, inocl, outside, rep_dt_remove)
-
 setdiff(unique(param$strain_name),unique(param_expok$strain_name))
-# Only 6 strains removed: we can't use these are their exponential growth is too variable
+# 0 strains removed: all have at least one replicate
 
 strains_typical = unique(param_expok$strain_name) # PERFECT strains
 
@@ -220,8 +198,20 @@ all_strains = unique(param$strain)
 ## Add in label for odd exponential growth
 
 #### CHANGE THIS TO MATCH THE ABOVE pp_strains selection... 
-param[which(!param$strain_name %in% strains_typical),"odd_type_db"] <- paste0(param[which(!param$strain_name %in% strains_typical),"odd_type_db"],"5")
-ddm[which(!ddm$strain %in% strains_typical),"odd_type_db"] <- paste0(ddm[which(!ddm$strain %in% strains_typical),"odd_type_db"],"5")
+param <- left_join(param, pp_strain_names %>% dplyr::select("strain_name", "rep","drytime","inocl","remove_dataset_exp_iter","total_rep_rem"), by = c("strain_name", "rep","drytime","inocl"))
+w1<-which(param$remove_dataset_exp_iter == 1)
+w2<-which(param$total_rep_rem > 0)
+w <- union(w1,w2)
+param[w,"odd_type_db"] <- paste0(param[w,"odd_type_db"],"5")
+
+pp_strain_names$strain <- pp_strain_names$strain_name
+pp_strain_names$inoc <- pp_strain_names$inocl
+ddm<- left_join(ddm, pp_strain_names %>% dplyr::select("strain", "rep","drytime","inoc","remove_dataset_exp_iter","total_rep_rem"), 
+                 by = c("strain", "rep","drytime","inoc"))
+w1<-which(ddm$remove_dataset_exp_iter == 1)
+w2<-which(ddm$total_rep_rem > 0)
+w <- union(w1,w2)
+ddm[w,"odd_type_db"] <- paste0(ddm[w,"odd_type_db"],"5")
 
 cols = c(1,brewer.pal(n = 11, name = "Set3"))
 dir.create(file.path(here(), "plots/final_data_split_highlighted/"),showWarnings = FALSE)
@@ -252,11 +242,13 @@ for(jj in 1:length(all_strains)){ # for each strain
     scale_color_manual("Odd_type", 
                        breaks = c("0","14","24","34","124","134","05",
                                   "145","245",
-                                  "234","1234","345"),
+                                  "234","1234","345",
+                                  "2345", "12345"),
                        labels = c("None","Peak&Double",
                                   "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","ExpGr",
                                   "Peak Shoulder&ExpGr","Width Shoulder&ExpGr",
-                                  "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr"),
+                                  "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr",
+                                  "Width Shoulder Double&ExpGr","All"),
                        #breaks = c("0","1","2","3","4","5",
                        #                        "12","13","23","123","14",
                        #                        "24","34","124","134","234",
@@ -306,10 +298,10 @@ dir.create(file.path(here(), "plots/output_fit/"),showWarnings = FALSE)
 
 ### Need to remove those with only 2 datapoints at time 0: perfect line
 #how many? 
-table(table(param_expok %>% filter(drytime == 0) %>% dplyr::select(strain_name, inocl))) # 62 + 15 = 77... 
+#table(table(param_expok %>% filter(drytime == 0) %>% dplyr::select(strain_name, inocl))) 
 param_expok_filt <- param_expok %>% group_by(strain_name, drytime, rep) %>% 
   mutate(ndata = n() + ifelse(drytime == 168, 3,0)) %>% # add 3 as only care about little data at time zero
-  filter(ndata > 2)
+  filter(ndata > 2) # if remove 0 timepoint then won't evaluate in linear fit so only need to remove these
 
 # What strains have all / some data?
 table(table(pp_strain_names$strain_name)) # Original data 
@@ -351,15 +343,15 @@ r2_threshold = 0.75
 ###########*********** MODEL FIT ********************#########################
 
 ### RUN first time
-# reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
+reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
 # 
-# write_csv(reductions_fit$reductions, "plots/linear_fit/reductions_fit_reductions.csv") # save so can read in later
-# write_csv(reductions_fit$fit, "plots/linear_fit/reductions_fit_fit.csv") # save so can read in later
+ write_csv(reductions_fit$reductions, "plots/linear_fit/reductions_fit_reductions.csv") # save so can read in later
+ write_csv(reductions_fit$fit, "plots/linear_fit/reductions_fit_fit.csv") # save so can read in later
 
 ## READ in on subsequent times
-reductions_fit <- c() # initialise
-reductions_fit$reductions <- read_csv("plots/linear_fit/reductions_fit_reductions.csv") 
-reductions_fit$fit <- read_csv("plots/linear_fit/reductions_fit_fit.csv")
+#reductions_fit <- c() # initialise
+#reductions_fit$reductions <- read_csv("plots/linear_fit/reductions_fit_reductions.csv") 
+#reductions_fit$fit <- read_csv("plots/linear_fit/reductions_fit_fit.csv")
 
 ###########*###########***********###########***********###########***********
 ###########*
@@ -380,12 +372,12 @@ fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
 # How many remove by filtering on R2? 
 dim(reductions_fit$fit)
 dim(reductions_fit$fit %>% filter(R2 > r2_threshold))
-dim(reductions_fit$fit) - dim(reductions_fit$fit %>% filter(R2 > r2_threshold)) # 7 datasets 
+dim(reductions_fit$fit) - dim(reductions_fit$fit %>% filter(R2 > r2_threshold)) # 7 replicates
+reductions_fit$fit %>% filter(R2 <= r2_threshold)
 
-
-length(unique(param_expok_filt$strain_name)) # 92 into the function
-length(unique(reductions_fit$fit$strain)) 
-length(fitted_strains) # 86 Filtered on R2
+length(unique(param_expok_filt$strain_name)) # 98 into the function
+length(unique(reductions_fit$fit$strain)) # 90 have values
+length(fitted_strains) # 90 after filtered on R2
 
 setdiff(unique(param_expok$strain_name),unique(reductions_fit$fit$strain))
 setdiff(unique(param_expok_filt$strain_name),unique(reductions_fit$fit$strain))
@@ -401,41 +393,6 @@ setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 # meas = 4 = predicted inoculum
 rw <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% pivot_longer(`10^2`:`10^6`) 
 rw$inocl <- as.numeric(substr(rw$name,4,4))
-
-
-#### Can compare which datasets were removed if use straight outside mean calculation or iterative
-# Straight outside calculation
-# outside_datasets$ticker <- outside_datasets$rep_st 
-# outside_datasets168 <- outside_datasets %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
-# outside_datasets168$outside168 <- outside_datasets168$outside
-# 
-# rwoo <- left_join(rw, outside_datasets %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
-# rwo <- left_join(rwoo, outside_datasets168 %>% dplyr::select(-c(outside))) %>%
-#   mutate(outside_f = ifelse(is.na(outside), ifelse(is.na(outside168),"NA",1),1))
-# 
-# ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) + 
-#   facet_wrap(~strain_name) + 
-#   scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
-#   ggtitle("Exclude all initially outside range")
-# ggsave("output/reductions_exp_outlier.pdf")
-
-# Iterative outside calculation
-outside_datasets2$ticker <- outside_datasets2$rep_st 
-outside_datasets2$outside <- 1
-outside_datasets2168 <- outside_datasets2 %>% filter(drytime == 168) %>% dplyr::select(-c(rep_st, drytime))
-outside_datasets2168$outside168 <- 1
-rw$strain_name <- as.character(rw$strain_name)
-
-rwoo <- left_join(rw, outside_datasets2 %>% filter(drytime == 0) %>% dplyr::select(-c(rep_st, drytime)))
-rwo <- left_join(rwoo, outside_datasets2168 %>% dplyr::select(-c(outside))) %>%
-  mutate(outside_f = ifelse(is.na(outside), ifelse(is.na(outside168),"NA",1),1))
-
-ggplot(rwo, aes(x=inocl, y = value)) + geom_point(aes(col = factor(outside_f))) + 
-  facet_wrap(~strain_name) + 
-  scale_color_discrete("Outside or in\nthe range?", breaks = c(1, "NA"), labels = c("Yes","No")) + 
-  ggtitle("Iterative exp exclusion")
-ggsave("plots/exp_growth/reductions_exp_outlier_iterative.pdf", width = 10, height = 10)
-
 
 #### Average
 # Take the average over all values
@@ -535,7 +492,7 @@ g1 <- ggplot(av_inoc, aes(x=lab, y = mean_inoc)) + geom_bar(stat="identity") +
   theme(legend.position = "none")
 
 ## Success? 
-succ <- read_csv("data/MACOTRA 100collection success_20210121.csv")
+succ <- read_csv("data/MACOTRA_100collection success_20210121.csv")
 succ$strain_name <- as.character(succ$strain)
 
 succ_go <- left_join(reductions_fit$reductions %>% filter(strain_name %in% fitted_strains),succ, by = "strain_name")
@@ -567,10 +524,10 @@ av_inoc_succ <- succ_go %>%
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
   group_by(strain_name, name, success) %>% 
-  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
+  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
   ungroup() %>% 
   group_by(name, success) %>% 
-  summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE))
+  dplyr::summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE))
 
 av_inoc_succ$lab = as.numeric(substr(av_inoc_succ$name,4,4))
 
@@ -588,10 +545,10 @@ av_inoc_succ_lin <- succ_go %>%
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
   group_by(strain_name, name, success, lineage) %>% 
-  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
+  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
   ungroup() %>% 
   group_by(name, success, lineage) %>% 
-  summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
+  dplyr::summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
 
 av_inoc_succ_lin$lab = as.numeric(substr(av_inoc_succ_lin$name,4,4))
 
@@ -610,7 +567,7 @@ v_inoc_succ_lin <- succ_go %>%
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
   group_by(strain_name, name, success, lineage, country) %>% 
-  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) 
+  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) 
 
 v_inoc_succ_lin$lab = as.numeric(substr(v_inoc_succ_lin$name,4,4))
 
@@ -650,10 +607,10 @@ av_inoc_succ_country <- succ_go %>%
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
   group_by(strain_name, name, success, country) %>% 
-  summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
+  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
   ungroup() %>% 
   group_by(name, success, country) %>% 
-  summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
+  dplyr::summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
 
 av_inoc_succ_country$lab = as.numeric(substr(av_inoc_succ_country$name,4,4))
 

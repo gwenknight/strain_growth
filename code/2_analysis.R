@@ -136,6 +136,9 @@ colnames(param) <- c("strain_name","rep","drytime","inocl",
 w<-which(param$lag!=0); param <- param[w,] # remove 0 values
 dim(param)
 
+### how many had double peaks? 
+param %>% filter(odd_peaks > 0) %>% summarise(unique(strain_name))
+
 #### CHECK FOR ODD BEHAVIOUR
 param$any_odd <- as.numeric(param$odd_peaks) + as.numeric(param$odd_width) + as.numeric(param$odd_shoulder)
 param$odd_type <- "0"
@@ -146,6 +149,14 @@ param[which(param$odd_shoulder > 0),"odd_type"] <- paste0(param[which(param$odd_
 param[which(param$odd_double > 0),"odd_type_db"] <- paste0(param[which(param$odd_double > 0),"odd_type"],"4")
 unique(param$odd_type)
 unique(param$odd_type_db)
+# How many are "odd"? 
+param %>% filter(odd_type != "0") %>% summarise(unique(strain_name))
+t <- table(param %>% filter(odd_type != "0") %>% dplyr::select(strain_name)) 
+t[which(t>3)]
+length(t[which(t>3)])
+
+param %>% filter(strain_name == "11057") %>% summarise(unique(odd_type))
+
 
 ##### Save output 
 write.csv(param,paste0("output/",name_code,"all_model_fit_params.csv"))

@@ -183,22 +183,66 @@ ggsave("plots/exp_growth/exp_explore_combine.pdf", width = 25)
 
 cutoff <- 0.36 ## Determined as the cutoff that removes the top 10% of variable strains
 
-pp_strain_names <- param %>%
-  group_by(strain_name, rep) %>% # Over the replicate within a strain
-  mutate(mean_peak_exp_gr = mean(cut_exp), # what is the mean? 
-         mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr, # what is the upper limit?
-         mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr, # what is the lower limit?
-         outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0)) %>% # is it outside? 
+# pp_strain_names <- param %>%
+#   group_by(strain_name, rep) %>% # Over the replicate within a strain
+#   mutate(mean_peak_exp_gr = mean(cut_exp), # what is the mean? 
+#          mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr, # what is the upper limit?
+#          mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr, # what is the lower limit?
+#          outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0)) %>% # is it outside? 
+#   ungroup() %>% 
+#   group_by(strain_name, rep,drytime) %>% # in a strain, rep and drytime
+#   mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>% # how many / percentage outside? 
+#   ungroup() %>% 
+#   group_by(strain_name, rep) %>% # in a replicate
+#   mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>% # remove if > 34 = third outside
+#   ungroup() %>%
+#   mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>% # if none to remove then put in rep name
+#   group_by(strain_name) %>%
+#   mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
+
+pp_strain_names <- po %>%
+  group_by(strain_name, rep_st) %>% 
+  dplyr::mutate(mean_peak_exp_gr = mean(cut_exp),
+                mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
+                mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
+                outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
+                diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
+                max = max(diff), 
+                remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
   ungroup() %>% 
-  group_by(strain_name, rep,drytime) %>% # in a strain, rep and drytime
-  mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>% # how many / percentage outside? 
-  ungroup() %>% 
-  group_by(strain_name, rep) %>% # in a replicate
-  mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>% # remove if > 34 = third outside
+  group_by(strain_name, rep_st, remove_dataset) %>%
+  dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
+                mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
+                mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
+                outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
+                diff2 = ifelse(outside2 == 1, abs(cut_exp - mean_peak_exp_gr2), 0),
+                max2 = max(diff2), 
+                remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
+  group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
+  dplyr::mutate(mean_peak_exp_gr3 = mean(cut_exp),
+                mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
+                mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
+                outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
+                diff3 = ifelse(outside3 == 1, abs(cut_exp - mean_peak_exp_gr3), 0),
+                max3 = max(diff3), 
+                remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
+  group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
+  dplyr::mutate(mean_peak_exp_gr4 = mean(cut_exp),
+                mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
+                mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
+                outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
+                diff4 = ifelse(outside4 == 1, abs(cut_exp - mean_peak_exp_gr4), 0),
+                max4 = max(diff4), 
+                remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
   ungroup() %>%
-  mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>% # if none to remove then put in rep name
-  group_by(strain_name) %>%
-  mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
+  dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4) %>%
+  group_by(strain_name, rep,drytime) %>% 
+  dplyr::mutate(total_outside_inrep = sum(remove_dataset_exp_iter), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
+  ungroup() %>% 
+  group_by(strain_name, rep) %>% 
+  dplyr::mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
+  ungroup() %>%
+  dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) 
 
 theme_set(theme_bw(base_size=6))
 ggplot(pp_strain_names, aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime))) +
@@ -207,9 +251,9 @@ ggplot(pp_strain_names, aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = fac
   scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
   scale_y_continuous("Exponential growth") + 
   facet_wrap(strain_name ~ rep, ncol = 30) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") + 
+  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(ifelse(total_rep_rem>0,1,0))),lty = "dashed") + 
   ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
 ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth.pdf"),width = 30, height = 30)
 
@@ -220,23 +264,38 @@ ggplot(pp_strain_names %>% filter(strain_name == "11288"), aes(x=inocl, y = cut_
   scale_x_continuous("Inoculum", breaks = c(3,4,5)) + 
   scale_y_continuous("Exponential growth", lim = c(0,0.03)) + 
   facet_wrap(strain_name ~ rep, ncol = 30) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") + 
+  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(ifelse(total_rep_rem>0,1,0))),lty = "dashed") + 
   ggtitle(paste0("11288. Red = outside of limits (",100*cutoff,"%)")) + theme_bw(base_size = 20)
 ggsave(paste0("plots/exp_growth/eg_cutoff_from_mean_exponential_growth.pdf"))
 
 
 
-ggplot(pp_strain_names %>% filter(remove_strain == 1), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 2) +
+# ggplot(pp_strain_names %>% filter(total_rep_rem>0) %>% 
+#          pivot_longer(cols = c("remove_dataset", "remove_dataset2","remove_dataset3","remove_dataset4")) , aes(x=inocl, y = cut_exp)) +
+#   geom_point(aes(colour = factor(name),pch = factor(drytime)), size = 2) +
+#   #scale_color_manual("In the limits?", values = c("black","red"), labels = c("yes", "no")) +
+#   scale_shape_discrete("Drytime") + 
+#   scale_x_continuous("Inoculum", lim = c(2.8, 5.2), breaks = c(3,4,5)) + 
+#   scale_y_continuous("Maximal exponential growth rate") + 
+#   facet_wrap(strain_name ~ rep, nrow = 3, scales = "free") +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+#   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(ifelse(total_rep_rem>0,1,0))),lty = "dashed") 
+# #ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
+# ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth_outside.pdf"),width = 14, height = 10)
+
+ggplot(pp_strain_names %>% filter(total_rep_rem>0), aes(x=inocl, y = cut_exp)) +
+  geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 2) +
   scale_color_manual("In the limits?", values = c("black","red"), labels = c("yes", "no")) +
   scale_shape_discrete("Drytime") + 
   scale_x_continuous("Inoculum", lim = c(2.8, 5.2), breaks = c(3,4,5)) + 
   scale_y_continuous("Maximal exponential growth rate") + 
   facet_wrap(strain_name ~ rep, nrow = 3, scales = "free") +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(remove_strain))) +
-  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(remove_strain)),lty = "dashed") 
+  geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
+  geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(ifelse(total_rep_rem>0,1,0))),lty = "dashed") 
   #ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
 ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth_outside.pdf"),width = 14, height = 10)
 
