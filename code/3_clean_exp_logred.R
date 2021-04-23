@@ -218,6 +218,8 @@ strains_typical = unique(param_expok$strain_name) # PERFECT strains
 all_strains = unique(param$strain)
 
 ## Add in label for odd exponential growth
+
+#### CHANGE THIS TO MATCH THE ABOVE pp_strains selection... 
 param[which(!param$strain_name %in% strains_typical),"odd_type_db"] <- paste0(param[which(!param$strain_name %in% strains_typical),"odd_type_db"],"5")
 ddm[which(!ddm$strain %in% strains_typical),"odd_type_db"] <- paste0(ddm[which(!ddm$strain %in% strains_typical),"odd_type_db"],"5")
 
