@@ -1,0 +1,101 @@
+﻿original_id,strain,success,country,lineage,infection,year,institute,mec,pvl,spa,mlva-mc,mlva-mt,mlst-cc,mlst-st
+MAC166,11001,Successful,Netherlands,CC1,Carriage,2017,RIVM,mecA,Negative,,MC0001,MT0149,,
+MAC171,11002,Successful,Netherlands,CC8,Carriage,2017,RIVM,mecA,Positive,,MC0008,MT0240,,
+MAC129,11004,Unsuccessful,Netherlands,CC1,Carriage,2008,RIVM,mecA,Negative,t127,MC0001,MT0222,,
+MAC161,11006,Unsuccessful,Netherlands,CC8,Carriage,2008,RIVM,mecA,Negative,t064,MC0008,MT0189,,
+MAC142,11009,Successful,Netherlands,CC5,Carriage,2008,RIVM,mecA,Negative,t003,MC0005,MT0130,,
+MAC149,11010,Successful,Netherlands,CC22,Carriage,2008,RIVM,mecA,Negative,t032,MC0022,MT0022,,
+MAC177,11012,Unsuccessful,Netherlands,CC22,Carriage,2017,RIVM,mecA,Negative,,MC0022,MT5613,,
+MAC187,11014,Successful,Netherlands,CC30,Carriage,2017,RIVM,mecA,Positive,,MC0030,MT1866,,
+MAC191,11015,Unsuccessful,Netherlands,CC45,Carriage,2017,RIVM,mecA,Negative,,MC0045,MT5750,,
+MAC194,11016,Successful,Netherlands,CC5,Carriage,2017,RIVM,mecA,Positive,,MC0005,MT0091,,
+MAC131,11017,Successful,Netherlands,CC45,Carriage,2008,RIVM,mecA,Negative,t2719,MC0045,MT0528,,
+MAC153,11021,Successful,Netherlands,CC8,Carriage,2008,RIVM,mecA,Positive,t008,MC0008,MT0314,,
+MAC132,11023,Unsuccessful,Netherlands,CC30,Infection,2008,RIVM,mecA,Negative,t018,MC0030,MT0769,,
+MAC143,11027,Successful,Netherlands,CC5,Carriage,2008,RIVM,mecA,Negative,t179,MC0005,MT0005,,
+MAC146,11028,Successful,Netherlands,CC30,Unknown,2008,RIVM,mecA,Negative,t012,MC0030,MT0399,,
+MAC163,11030,Successful,Netherlands,CC30,Carriage,2017,RIVM,mecA,Positive,,MC0030,MT0212,,
+MAC186,11032,Unsuccessful,Netherlands,CC1,Carriage,2017,RIVM,mecA,Negative,,MC0001,MT0151,,
+MAC159,11040,Unsuccessful,Netherlands,CC22,Carriage,2008,RIVM,mecA,Positive,t016,MC0022,MT1699,,
+MAC173,11044,Unsuccessful,Netherlands,CC30,Carriage,2017,RIVM,mecA,Negative,,MC0030,MT1738,,
+MAC179,11045,Successful,Netherlands,CC45,Infection,2017,RIVM,mecA,Negative,,MC0045,MT1352,,
+MAC182,11046,Successful,Netherlands,CC22,Unknown,2017,RIVM,mecA,Negative,,MC0022,MT0491,,
+MAC190,11048,Unsuccessful,Netherlands,CC8,Carriage,2017,RIVM,mecA,Negative,,MC0008,MT1773,,
+MAC195,11050,Unsuccessful,Netherlands,CC22,Carriage,2017,RIVM,Negative,Negative,,MC0022,MT3257,,
+MAC196,11051,Unsuccessful,Netherlands,CC5,Infection,2017,RIVM,mecA,Negative,,MC0005,MT3843,,
+MAC144,11053,Unsuccessful,Netherlands,CC1,Infection,2008,RIVM,mecA,Negative,t591,MC0001,MT1186,,
+MAC175,11057,Unsuccessful,Netherlands,CC45,Infection,2017,RIVM,mecA,Negative,,MC0045,MT5577,,
+MAC181,11058,Unsuccessful,Netherlands,CC5,Carriage,2017,RIVM,mecA,Negative,,MC0005,MT5667,,
+MAC130,11060,Unsuccessful,Netherlands,CC5,Unknown,2008,RIVM,mecA,Negative,t067,MC0005,MT0063,,
+MAC137,11069,Unsuccessful,Netherlands,CC45,Infection,2008,RIVM,mecA,Negative,t1040,MC0045,MT0789,,
+MAC147,11070,Unsuccessful,Netherlands,CC45,Infection,2008,RIVM,Negative,Negative,t282,MC0045,MT1327,,
+MAC158,11073,Unsuccessful,Netherlands,CC8,Unknown,2008,RIVM,Negative,Negative,t301,MC0008,MT1695,,
+MAC205,11076,Unsuccessful,Netherlands,Other (ST59),Carriage,2014,RIVM,mecA,Negative,t216,MC0621,MT4554,,
+MAC206,11077,Unsuccessful,Netherlands,CC45,Carriage,2014,RIVM,mecA,Negative,t026,MC0045,MT4583,,
+MAC207,11078,Unsuccessful,Netherlands,CC5,Carriage,2014,RIVM,mecA,Negative,t002,MC0005,MT0880,,
+MAC208,11079,Unsuccessful,Netherlands,CC45,Carriage,2015,RIVM,mecA,Negative,t630,MC0045,MT1113,,
+MAC209,11080,Unsuccessful,Netherlands,CC1,Carriage,2015,RIVM,mecA,Negative,,MC0437,MT0967,,
+MAC174,11082,Successful,Netherlands,CC22,Carriage,2017,RIVM,mecA,Negative,,MC0022,MT0747,,
+MAC178,11084,Unsuccessful,Netherlands,CC1,Carriage,2017,RIVM,mecA,Negative,,MC0001,MT4149,,
+MAC188,11086,Unsuccessful,Netherlands,CC8,Infection,2017,RIVM,mecA,Negative,,MC0008,MT1056,,
+MAC002,11090,Successful,United Kingdom,CC1,Infection,2015,SGUL,mecA,,,,,CC1,
+MAC008,11096,Unsuccessful,United Kingdom,CC45,Infection,2008,SGUL,mecA,,,,,CC45,
+MAC012,11100,Unsuccessful,United Kingdom,CC8,Infection,2009,SGUL,mecA,,,,,CC8,
+MAC013,11101,Unsuccessful,United Kingdom,CC8,Infection,2014,SGUL,mecA,,,,,CC8,
+MAC016,11104,Successful,United Kingdom,CC30,Infection,2009,SGUL,mecA,,,,,CC30,
+MAC018,11106,Successful,United Kingdom,CC30,Infection,2009,SGUL,mecA,,,,,CC30,
+MAC019,11107,Unsuccessful,United Kingdom,CC30,Infection,2006,SGUL,mecA,,,,,CC30,
+MAC020,11108,Successful,United Kingdom,CC30,Infection,2008,SGUL,mecA,,,,,CC30,
+MAC024,11112,Unsuccessful,United Kingdom,CC30,Infection,2008,SGUL,mecA,,,,,CC30,
+MAC034,11122,Unsuccessful,United Kingdom,CC22,Infection,2008,SGUL,mecA,,,,,CC22,
+MAC038,11126,Successful,United Kingdom,CC22,Infection,2009,SGUL,mecA,,,,,CC22,
+MAC039,11127,Successful,United Kingdom,CC22,Infection,2009,SGUL,mecA,,,,,CC22,
+MAC041,11129,Unsuccessful,United Kingdom,CC22,Infection,2009,SGUL,mecA,,,,,CC22,
+MAC044,11132,Successful,United Kingdom,CC22,Infection,2009,SGUL,mecA,,,,,CC22,
+MAC047,11135,Successful,United Kingdom,CC22,Infection,2009,SGUL,mecA,,,,,CC22,
+MAC052,11140,Unsuccessful,United Kingdom,CC22,Infection,2009,SGUL,mecA,,,,,CC22,
+MAC054,11142,Successful,United Kingdom,CC22,Infection,2008,SGUL,mecA,,,,,CC22,
+MAC073,11161,Unsuccessful,United Kingdom,CC22,Infection,2013,SGUL,mecA,,,,,CC22,
+MAC077,11165,Successful,United Kingdom,CC22,Infection,2015,SGUL,mecA,,,,,CC22,
+MAC089,11177,Unsuccessful,France,CC45,Infection,2015,Inserm,mecA,Negative,,,,CC45,
+MAC091,11179,Unsuccessful,France,CC80,Unknown,2014,Inserm,mecA,Positive,,,,CC80,
+MAC099,11193,Unsuccessful,France,CC8,Infection,2016,Inserm,mecA,Positive,,,,CC8,
+MAC100,11194,Unsuccessful,France,CC8,Infection,2016,Inserm,mecA,Positive,,,,CC8,
+MAC107,11205,Unsuccessful,France,CC22,Infection,2015,Inserm,mecA,Negative,,,,CC22,
+MAC111,11210,Unsuccessful,France,CC5,Infection,2016,Inserm,mecA,Negative,,,,CC5,
+MAC227,11214,Unsuccessful,France,CC5,Carriage,2015,Inserm,mecA,Negative,,,,CC5,
+MAC225,11223,Unsuccessful,France,CC5,Infection,2016,Inserm,mecA,Negative,,,,CC5,
+MAC121,11227,Unsuccessful,France,CC8,Infection,2017,Inserm,mecA,Negative,,,,CC8,
+MAC217,11230,Unsuccessful,France,CC8,Infection,2015,Inserm,mecA,Negative,,,,CC8,
+MAC105,11237,Successful,France,CC1,Infection,2016,Inserm,mecA,Negative,,,,CC1,
+MAC109,11239,Successful,France,CC22,Infection,2017,Inserm,mecA,Negative,,,,CC22,
+MAC259,11243,Successful,France,CC5,Infection,2017,Inserm,mecA,Negative,,,,CC5,
+MAC116,11245,Successful,France,CC5,Infection,2015,Inserm,mecA,Negative,,,,CC5,
+MAC238,11250,Successful,France,CC5,Carriage,2015,Inserm,mecA,Negative,,,,CC5,
+MAC267,11253,Successful,France,CC5,Infection,2016,Inserm,mecA,Negative,,,,CC5,
+MAC223,11257,Successful,France,CC5,Infection,2015,Inserm,mecA,Negative,,,,CC5,
+MAC124,11259,Successful,France,CC8,Infection,2017,Inserm,mecA,Negative,,,,CC8,
+MAC127,11263,Successful,France,CC8,Infection,2017,Inserm,mecA,Negative,,,,CC8,
+MAC220,11265,Successful,France,CC8,Infection,2017,Inserm,mecA,Negative,,,,CC8,
+,11271,Unsuccessful,Netherlands,CC398,Carriage,2017,RIVM,mecA,Negative,,MC0398,MT0398,,ST398
+,11272,Successful,Netherlands,CC22,Infection,2017,RIVM,mecA,Negative,,MC0022,MT0461,,ST22
+,11273,Successful,Netherlands,CC398,Unknown,2017,RIVM,mecA,Positive,,MC0398,MT0569,,ST1232
+,11274,Unsuccessful,Netherlands,CC5,Infection,2017,RIVM,mecA,Negative,,MC0005,MT5713,,ST5
+,11275,Successful,Netherlands,CC22,Infection,2017,RIVM,mecA,Negative,,MC0022,MT0461,,ST22
+,11276,Unsuccessful,Netherlands,CC22,Carriage,2017,RIVM,mecA,Negative,,MC0022,MT0022,,ST22
+,11277,Unsuccessful,Netherlands,CC45,Unknown,2017,RIVM,mecA,Negative,,MC0045,MT1352,,ST45
+,11278,Successful,Netherlands,CC22,Infection,2018,RIVM,mecA,Negative,,MC0022,MT0467,,ST22
+,11279,Unsuccessful,Netherlands,CC22,Infection,2018,RIVM,mecA,Negative,,MC0022,MT0473,,ST22
+,11280,Unsuccessful,Netherlands,CC22,Infection,2018,RIVM,mecA,Negative,,MC0022,MT5585,,ST22
+,11281,Successful,Netherlands,CC45,Unknown,2018,RIVM,mecA,Negative,,MC0045,MT4732,,ST45
+,11282,Successful,Netherlands,CC398,Unknown,2018,RIVM,mecA,Positive,,MC0398,MT0569,,ST1232
+,11283,Successful,Netherlands,CC22,Infection,2018,RIVM,mecA,Negative,,MC0022,MT0467,,ST22
+,11284,Unsuccessful,Netherlands,CC45,Infection,2018,RIVM,mecA,Negative,,MC0045,MT1352,,ST45
+,11285,Unsuccessful,Netherlands,CC22,Unknown,2018,RIVM,mecA,Negative,,MC0022,MT0461,,ST22
+,11286,Successful,Netherlands,CC5,Unknown,2018,RIVM,mecA,Negative,,MC0005,MT0037,,ST5
+,11287,Unsuccessful,Netherlands,CC5,Infection,2017,RIVM,mecA,Negative,,MC0005,MT5547,,ST5
+,11288,Unsuccessful,Netherlands,CC398,Infection,2017,RIVM,mecA,Positive,,MC0398,MT4884,,ST1232
+,11289,Successful,Netherlands,CC5,Infection,2017,RIVM,mecA,Negative,,MC0005,MT0037,,ST5
+,11290,Successful,Netherlands,CC45,Infection,2017,RIVM,mecA,Negative,,MC0045,MT4732,,ST45
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
