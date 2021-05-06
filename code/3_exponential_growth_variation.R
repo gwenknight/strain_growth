@@ -183,22 +183,6 @@ ggsave("plots/exp_growth/exp_explore_combine.pdf", width = 25)
 
 cutoff <- 0.36 ## Determined as the cutoff that removes the top 10% of variable strains
 
-# pp_strain_names <- param %>%
-#   group_by(strain_name, rep) %>% # Over the replicate within a strain
-#   mutate(mean_peak_exp_gr = mean(cut_exp), # what is the mean? 
-#          mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr, # what is the upper limit?
-#          mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr, # what is the lower limit?
-#          outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0)) %>% # is it outside? 
-#   ungroup() %>% 
-#   group_by(strain_name, rep,drytime) %>% # in a strain, rep and drytime
-#   mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>% # how many / percentage outside? 
-#   ungroup() %>% 
-#   group_by(strain_name, rep) %>% # in a replicate
-#   mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>% # remove if > 34 = third outside
-#   ungroup() %>%
-#   mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>% # if none to remove then put in rep name
-#   group_by(strain_name) %>%
-#   mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
 
 pp_strain_names <- po %>%
   group_by(strain_name, rep_st) %>% 
@@ -272,20 +256,6 @@ ggsave(paste0("plots/exp_growth/eg_cutoff_from_mean_exponential_growth.pdf"))
 
 
 
-# ggplot(pp_strain_names %>% filter(total_rep_rem>0) %>% 
-#          pivot_longer(cols = c("remove_dataset", "remove_dataset2","remove_dataset3","remove_dataset4")) , aes(x=inocl, y = cut_exp)) +
-#   geom_point(aes(colour = factor(name),pch = factor(drytime)), size = 2) +
-#   #scale_color_manual("In the limits?", values = c("black","red"), labels = c("yes", "no")) +
-#   scale_shape_discrete("Drytime") + 
-#   scale_x_continuous("Inoculum", lim = c(2.8, 5.2), breaks = c(3,4,5)) + 
-#   scale_y_continuous("Maximal exponential growth rate") + 
-#   facet_wrap(strain_name ~ rep, nrow = 3, scales = "free") +
-#   geom_hline(aes(yintercept = mean_peak_exp_gr_m10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
-#   geom_hline(aes(yintercept = mean_peak_exp_gr_p10, col = factor(ifelse(total_rep_rem>0,1,0)))) +
-#   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(ifelse(total_rep_rem>0,1,0))),lty = "dashed") 
-# #ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
-# ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth_outside.pdf"),width = 14, height = 10)
-
 ggplot(pp_strain_names %>% filter(total_rep_rem>0), aes(x=inocl, y = cut_exp)) +
   geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 2) +
   scale_color_manual("In the limits?", values = c("black","red"), labels = c("yes", "no")) +
@@ -324,93 +294,3 @@ ggplot(ddm, aes(x = Time, y = value_J_norm, group= interaction(rep, inoc, drytim
 ggsave("plots/exp_growth/normalised_start.pdf", width = 20, height = 20)
 
 
-######### Diagnostic / exploring plots - not necessary 
-# # Change replicates from within experiment given names to replicate 1 to 3 for all 
-# po <- param %>% group_by(strain_name) %>% dplyr::mutate(maxx = max(rep), minn = min(rep), 
-#                                                         ones = ifelse(rep == minn, 1, 0), threes = ifelse(rep == maxx,1,0), twos = ifelse(ones == 0, ifelse(threes == 0,1,0),0)) %>%
-#   mutate(rep_st = case_when((ones == 1) ~ 1,
-#                             (threes == 1)  ~ 3,
-#                             (twos == 1) ~ 2)) # tries pmax etc didn't work # Labels reps as 1 2 3
-# 
-# 
-# ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) +
-#   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-#   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/exp_growth_across_replicates.pdf")
-# 
-# ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-#   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-#   scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/exp_growth_across_inocl_bp.pdf")
-# 
-# ggplot(po, aes(x=inocl, y = cut_exp, group = interaction(inocl, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
-#   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-#   scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/exp_growth_across_inocl_bpgrp.pdf")
-# 
-# ggplot(po, aes(x=inocl, y = cut_exp,aes(group = drytime))) + geom_point() +  
-#   geom_smooth(method = "loess") +  #, #, formula = y ~ a * x + b,method.args = list(start = list(a = 0.1, b = 0.1))) + 
-#   facet_wrap(~drytime) + 
-#   scale_y_continuous(lim = c(0,0.1),"Exponential growth") + 
-#   scale_x_continuous("Inoculum") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/exp_growth_across_inocl_pointsline.pdf")
-# 
-# ggplot(po, aes(x=rep_st, y = t_m_h_flow, group = interaction(rep_st, drytime, strain_name))) + geom_boxplot(aes(col = factor(drytime))) + 
-#   scale_y_continuous("Time to peak") + 
-#   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/time_to_peak_across_replicates.pdf")
-# 
-# ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
-#   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
-#   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/across_replicates_zoom.pdf")
-# 
-# ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
-#   geom_jitter(width = 0.1,aes(col = factor(drytime))) + 
-#   facet_wrap(~strain_name, scales = "free_x") + 
-#   scale_y_continuous("Exponential growth") + 
-#   scale_x_discrete("Replicate/Strain") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
-# ggsave("plots/exp_growth/across_replicates_zoom_strain_rep.pdf",width = 30, height = 30)
-# 
-# ggplot(po, aes(x=interaction(rep_st, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
-#   geom_jitter(width = 0.1,aes(col = factor(inocl), pch = factor(drytime))) + 
-#   facet_wrap(~strain_name, scales = "free_x") + 
-#   scale_y_continuous("Exponential growth") + 
-#   scale_x_discrete("Replicate/Strain") +   
-#   scale_shape_discrete("Dry time") + 
-#   scale_color_manual("Inoculum", values = c("red","black","turquoise")) + 
-#   theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
-# ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inocl.pdf",width = 30, height = 30)
-# 
-# ggplot(po, aes(x=interaction(inocl, strain_name), y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + 
-#   geom_jitter(width = 0.1,aes(col = factor(inocl), pch = factor(drytime))) + 
-#   facet_wrap(~strain_name, scales = "free_x") + 
-#   scale_y_continuous("Exponential growth") + 
-#   scale_x_discrete("Inoculum/Strain") +   
-#   scale_shape_discrete("Dry time") + 
-#   scale_color_manual("Inoculum", values = c("red","black","turquoise")) + 
-#   theme(legend.position="bottom") + theme(axis.text.x = element_text(angle = 90))
-# ggsave("plots/exp_growth/across_replicates_zoom_strain_rep_inoclgrp.pdf",width = 30, height = 30)
-# 
-# 
-# ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime, strain_name))) + geom_jitter(aes(col = factor(drytime))) + 
-#   scale_y_continuous("exponential growth") + 
-#   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/across_replicates_all.pdf")
-# 
-# ggplot(po, aes(x=rep_st, y = cut_exp, group = interaction(rep_st, drytime))) + geom_boxplot(aes(col = factor(drytime))) + 
-#   scale_y_continuous(lim = c(0,0.1),"exponential growth") + 
-#   scale_x_continuous("Replicate") +   scale_color_discrete("Dry time") + 
-#   theme(legend.position="bottom")
-# ggsave("plots/exp_growth/group_replicates.pdf")
-# 
-# ggplot(po %>% filter(drytime == 0), aes(x=inocl, y = cut_exp, group = interaction(rep,strain))) + 
-#   geom_line(aes(col = strain))
