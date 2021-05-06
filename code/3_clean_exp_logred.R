@@ -581,16 +581,17 @@ av_inoc_country_lin <- succ_go %>%
   filter(r2 > r2_threshold, meas == 1) %>%
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
-  group_by(strain_name, name, success, country, lineage) %>% 
+  group_by(strain_name, name, country, lineage) %>% 
   summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
   ungroup() %>% 
-  group_by(name, success, country, lineage) %>% 
+  group_by(name, country, lineage) %>% 
   summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
 
 #av_inoc_country_lin <- av_inoc_country_lin %>% mutate(lab = as.numeric(paste0(substr(name,4,4),ifelse(country == "France",".2",ifelse(country == "Netherlands",".5",".7"))))) # doesn't work
 av_inoc_country_lin$lab = as.numeric(substr(av_inoc_country_lin$name,4,4))
 
-g5 <- ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc, group = interaction(country, lab, lineage))) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+g5 <- ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc, group = interaction(country, lab, lineage))) + 
+  geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
   facet_wrap(~lineage) + 
   geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
   scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
@@ -603,7 +604,7 @@ ggsave("plots/final/underlying_all_data_country_bar.pdf", width = 10, height = 8
   theme(legend.position='bottom')
 ggsave("plots/final/figure4_alternative.pdf", width = 15, height = 15)
 
-ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+ggplot(av_inoc_succ_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
   facet_wrap(lineage~success) + 
   geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
   scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
