@@ -63,65 +63,18 @@ write.csv(po, "output/param_labelled_repst.csv")
 #####*************************** REMOVE THOSE WITH EXPONENTIAL GROWTH OUTSIDE OF RANGE *******************###############
 cutoff <- 0.36 ### Determined by analysis in 3_exponential_growth_variation.R
 
-# OLD filtered just on the first outside classification
-# pp_strain_names <- po %>%
-#   group_by(strain_name, rep_st) %>% 
-#   dplyr::mutate(mean_peak_exp_gr = mean(cut_exp),
-#                 mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
-#                 mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
-#                 outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
-#                 diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
-#                 max = max(diff), 
-#                 remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
-#   ungroup() %>% 
-#   group_by(strain_name, rep,drytime) %>% 
-#   dplyr::mutate(total_outside_inrep = sum(outside), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
-#   ungroup() %>% 
-#   group_by(strain_name, rep) %>% 
-#   dplyr::mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
-#   ungroup() %>%
-#   dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) %>%
-#   group_by(strain_name) %>%
-#   dplyr::mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) %>% # n_distinct counts 0 so need to remove
-#   group_by(strain_name, rep_st, remove_dataset) %>%
-#   dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
-#                 mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
-#                 mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
-#                 outside2 = ifelse(cut_exp < mean_peak_exp_gr_m102 | cut_exp > mean_peak_exp_gr_p102, 1, 0),
-#                 diff2 = ifelse(outside2 == 1, abs(cut_exp - mean_peak_exp_gr2), 0),
-#                 max2 = max(diff2), 
-#                 remove_dataset2 = ifelse(diff2 == max2, ifelse(max2 > 0,1,0), 0)) %>% 
-#   group_by(strain_name, rep_st, remove_dataset, remove_dataset2) %>%
-#   dplyr::mutate(mean_peak_exp_gr3 = mean(cut_exp),
-#                 mean_peak_exp_gr_p103 = mean_peak_exp_gr3 + cutoff*mean_peak_exp_gr3,
-#                 mean_peak_exp_gr_m103 = mean_peak_exp_gr3 - cutoff*mean_peak_exp_gr3,
-#                 outside3 = ifelse(cut_exp < mean_peak_exp_gr_m103 | cut_exp > mean_peak_exp_gr_p103, 1, 0),
-#                 diff3 = ifelse(outside3 == 1, abs(cut_exp - mean_peak_exp_gr3), 0),
-#                 max3 = max(diff3), 
-#                 remove_dataset3 = ifelse(diff3 == max3, ifelse(max3 > 0,1,0), 0))  %>% 
-#   group_by(strain_name, rep_st, remove_dataset, remove_dataset2, remove_dataset3) %>%
-#   dplyr::mutate(mean_peak_exp_gr4 = mean(cut_exp),
-#                 mean_peak_exp_gr_p104 = mean_peak_exp_gr4 + cutoff*mean_peak_exp_gr4,
-#                 mean_peak_exp_gr_m104 = mean_peak_exp_gr4 - cutoff*mean_peak_exp_gr4,
-#                 outside4 = ifelse(cut_exp < mean_peak_exp_gr_m104 | cut_exp > mean_peak_exp_gr_p104, 1, 0),
-#                 diff4 = ifelse(outside4 == 1, abs(cut_exp - mean_peak_exp_gr4), 0),
-#                 max4 = max(diff4), 
-#                 remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
-#   ungroup() %>%
-#   dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4)
-
-## New filters on the new iterative removal, so the "remove a replicate" happens later
+## Iterative filter 
 pp_strain_names <- po %>%
   group_by(strain_name, rep_st) %>% 
-  dplyr::mutate(mean_peak_exp_gr = mean(cut_exp),
-                mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr,
+  dplyr::mutate(mean_peak_exp_gr = mean(cut_exp), # mean growth of first part of curve
+                mean_peak_exp_gr_p10 = mean_peak_exp_gr + cutoff*mean_peak_exp_gr, # +/- range
                 mean_peak_exp_gr_m10 = mean_peak_exp_gr - cutoff*mean_peak_exp_gr,
-                outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0),
-                diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0),
-                max = max(diff), 
+                outside = ifelse(cut_exp < mean_peak_exp_gr_m10 | cut_exp > mean_peak_exp_gr_p10, 1, 0), # is the growth for this dataset outside the range?
+                diff = ifelse(outside == 1, abs(cut_exp - mean_peak_exp_gr), 0), # what is the difference between the growth for this dataset vs the mean? 
+                max = max(diff), # what is the maximum difference across this 
                 remove_dataset = ifelse(diff == max, ifelse(max > 0,1,0), 0)) %>%
   ungroup() %>% 
-  group_by(strain_name, rep_st, remove_dataset) %>%
+  group_by(strain_name, rep_st, remove_dataset) %>% # group by remove_dataset now as want to consider those not removed differently
   dplyr::mutate(mean_peak_exp_gr2 = mean(cut_exp),
                 mean_peak_exp_gr_p102 = mean_peak_exp_gr2 + cutoff*mean_peak_exp_gr2,
                 mean_peak_exp_gr_m102 = mean_peak_exp_gr2 - cutoff*mean_peak_exp_gr2,
@@ -146,37 +99,37 @@ pp_strain_names <- po %>%
                 max4 = max(diff4), 
                 remove_dataset4 = ifelse(diff4 == max4, ifelse(max4 > 0,1,0), 0)) %>%
   ungroup() %>%
-  dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4) %>%
-  group_by(strain_name, rep,drytime) %>% 
-  dplyr::mutate(total_outside_inrep = sum(remove_dataset_exp_iter), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep) %>%
+  dplyr::mutate(remove_dataset_exp_iter = remove_dataset + remove_dataset2 + remove_dataset3 + remove_dataset4) %>% # sum over all: remove if any are > 0
+  group_by(strain_name, rep, drytime) %>%  # now group by drytime: matters if have few datasets pre / post drying 
+  dplyr::mutate(total_outside_inrep = sum(remove_dataset_exp_iter), total_inrep = n(), perc_outside = 100*total_outside_inrep / total_inrep,# how many of the datasets are removed in each drytime of the rep? 
+                rep_remove = ifelse(drytime == 0,ifelse(perc_outside > 34,1,0), ifelse(perc_outside == 100, 1, 0))) %>% # If drytime == 0 then need 3 left for linear model. If drytime == 168 then remove if all gone
   ungroup() %>% 
   group_by(strain_name, rep) %>% 
-  dplyr::mutate(rep_dt_remove = ifelse(perc_outside > 34, 1, ifelse(total_inrep < 2,1,0)), total_rep_rem = sum(rep_dt_remove)) %>%
+  dplyr::mutate(total_rep_rem = sum(rep_remove)) %>%
   ungroup() %>%
-  dplyr::mutate(keep_rep =ifelse((total_rep_rem == 0),rep,0)) 
-  #group_by(strain_name) %>%
-  #dplyr::mutate(remove_strain = ifelse((n_distinct(keep_rep) - any(keep_rep == 0)) >=2,0,1)) # n_distinct counts 0 so need to remove
+  dplyr::mutate(keep_rep = ifelse((total_rep_rem == 0),1,0)) 
 
-pp_strain_names %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, mean_peak_exp_gr_m10, mean_peak_exp_gr, mean_peak_exp_gr_p10, outside)
+# CHECK look at those reps removed
+pp_strain_names %>% filter(keep_rep == 0) %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, remove_dataset_exp_iter, total_outside_inrep, perc_outside, rep_remove, keep_rep, total_rep_rem) %>% print(n=Inf)
+# CHECK look at those datasets removed
+pp_strain_names %>% filter(remove_dataset_exp_iter == 1) %>% dplyr::select(strain_name, rep, drytime, inocl, cut_exp, remove_dataset_exp_iter, total_outside_inrep, perc_outside, rep_remove, keep_rep, total_rep_rem) %>% print(n=Inf)
 
 #### Remove those with exponential values outside the above range
 param_expok <- pp_strain_names %>%
-  #filter(remove_strain == 0) %>% # remove those strains with more than 2 wrong reps: keep these now
-  filter(total_rep_rem == 0) %>% # remove those reps with more than 2 outside
-  #filter(outside == 0) # remove those datasets outside the range: this is with no iterative calculation of the mean: no longer using
-  #filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean
-  filter(remove_dataset_exp_iter == 0) # same as above line: this is the sum of each of these indices
+  #filter(remove_dataset == 0, remove_dataset2 == 0, remove_dataset3 == 0, remove_dataset4 == 0) # remove those in the interative calculation of the mean: single datasets
+  filter(remove_dataset_exp_iter == 0) %>% # same as above line: this is the sum of each of these indices
+  filter(keep_rep == 1) # Keep those reps that have enough datasets
+  
 
 ## Which are removed? 
 dim(pp_strain_names) # 1739 datasets initially
-length(which(pp_strain_names$remove_strain == 1)) # 0 strains are removed: some only have one rep remaining though
 length(which(pp_strain_names$remove_dataset_exp_iter == 1)) # 171 single datasets removed from strains as outside range
-length(which(pp_strain_names$total_rep_rem > 0)) # A total of 228 datasets removed due to having to remove the whole rep (includes some of the 171)
+length(which(pp_strain_names$keep_rep == 0)) # 216 
 
-length(which(p2$remove_dataset == 1)) # 94 Each of these is remove one dataset and then recalculate the mean within a replicate
-length(which(p2$remove_dataset2 == 1)) # 25
-length(which(p2$remove_dataset3 == 1)) # 2
-length(which(p2$remove_dataset4 == 1)) # 0: so we know that we don't need to go any further with the iteration (as it is zero)
+length(which(pp_strain_names$remove_dataset == 1)) # 119 Each of these is remove one dataset and then recalculate the mean within a replicate
+length(which(pp_strain_names$remove_dataset2 == 1)) # 43
+length(which(pp_strain_names$remove_dataset3 == 1)) # 9
+length(which(pp_strain_names$remove_dataset4 == 1)) # 0: so we know that we don't need to go any further with the iteration (as it is zero)
 
 dim(pp_strain_names)[1] - dim(param_expok)[1] # total number of datasets removed this is the 171 single datasets + extra removed as not enough with the replicate
 
@@ -199,8 +152,8 @@ all_strains = unique(param$strain)
 
 #### CHANGE THIS TO MATCH THE ABOVE pp_strains selection... 
 param <- left_join(param, pp_strain_names %>% dplyr::select("strain_name", "rep","drytime","inocl","remove_dataset_exp_iter","total_rep_rem"), by = c("strain_name", "rep","drytime","inocl"))
-w1<-which(param$remove_dataset_exp_iter == 1)
-w2<-which(param$total_rep_rem > 0)
+w1<-which(param$remove_dataset_exp_iter == 1) # single datasets to remove
+w2<-which(param$total_rep_rem > 0) # total reps to remove
 w <- union(w1,w2)
 param[w,"odd_type_db"] <- paste0(param[w,"odd_type_db"],"5")
 
@@ -249,39 +202,13 @@ for(jj in 1:length(all_strains)){ # for each strain
                                   "Peak Shoulder&ExpGr","Width Shoulder&ExpGr",
                                   "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr",
                                   "Width Shoulder Double&ExpGr","All"),
-                       #breaks = c("0","1","2","3","4","5",
-                       #                        "12","13","23","123","14",
-                       #                        "24","34","124","134","234",
-                       #                        "1234","05",
-                       #                        "15","25","35","45",
-                       #                        "145","245","345"), 
-                       #                        "1235","235","1235","135",
-                       # labels = c("None","Peak","Width","Shoulder","Double","ExpGr",
-                       #            "Peak&Width","Peak&Shoulder","Width&Shoulder","Peak Width&Shoulder","Peak&Double",
-                       #            "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","Width Shoulder&Double",
-                       #            "Peak Width Shoulder&Double","ExpGr",
-                       #            "Peak&ExpGr","Width&ExpGr","Shoulder&ExpGr","Double&ExpGr",
-                       #            "Peak Width Shoulder&ExpGr","Width Shoulder&ExpGr","Peak Width Shoulder&ExpGr","Peak Shoulder&ExpGr",
-                       #            "Peak Double&ExpGr","Width Double&ExpGr","Shoulder Double ExpGr"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoc.") + 
     geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     ggtitle(all_strains[jj])
-  
-  # ggplot(dd, aes(x=Time, y = value_J)) + 
-  #   geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc)), lwd = 1) + 
-  #   facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
-  #   scale_color_manual("Odd_type", breaks = c("0","1","2","3","12","13","23","123"), 
-  #                      labels = c("None","Peak","Width","Shoulder","Peak&Width","Peak&Shoulder",
-  #                                 "Width&Shoulder","Peak Width&Shoulder"),
-  #                      values = cols, drop = FALSE) + 
-  #   scale_linetype_discrete("Inoc.") + 
-  #   geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, size = 1) + 
-  #   geom_point(aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
-  #   geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
-  #   ggtitle(all_strains[jj])
+
   
   ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), width = 15) # if any to highlight it is shown here
 }
@@ -299,7 +226,8 @@ dir.create(file.path(here(), "plots/output_fit/"),showWarnings = FALSE)
 ### Need to remove those with only 2 datapoints at time 0: perfect line
 #how many? 
 #table(table(param_expok %>% filter(drytime == 0) %>% dplyr::select(strain_name, inocl))) 
-param_expok_filt <- param_expok %>% group_by(strain_name, drytime, rep) %>% 
+param_expok_filt <- param_expok %>% 
+  group_by(strain_name, drytime, rep) %>% 
   mutate(ndata = n() + ifelse(drytime == 168, 3,0)) %>% # add 3 as only care about little data at time zero
   filter(ndata > 2) # if remove 0 timepoint then won't evaluate in linear fit so only need to remove these
 
@@ -345,8 +273,8 @@ r2_threshold = 0.75
 ### RUN first time
 reductions_fit <- fit_line_model(reps, strains, param_expok_filt, "timepeak","Time to max heat flow", R_cut = r2_threshold, plot = 1) ## plot = 1 will give the underling fit curves
 # 
- write_csv(reductions_fit$reductions, "plots/linear_fit/reductions_fit_reductions.csv") # save so can read in later
- write_csv(reductions_fit$fit, "plots/linear_fit/reductions_fit_fit.csv") # save so can read in later
+write_csv(reductions_fit$reductions, "plots/linear_fit/reductions_fit_reductions.csv") # save so can read in later
+write_csv(reductions_fit$fit, "plots/linear_fit/reductions_fit_fit.csv") # save so can read in later
 
 ## READ in on subsequent times
 #reductions_fit <- c() # initialise
@@ -394,16 +322,8 @@ setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 rw <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% pivot_longer(`10^2`:`10^6`) 
 rw$inocl <- as.numeric(substr(rw$name,4,4))
 
-#### Average
-# Take the average over all values
-rwo %>% 
-  ungroup() %>% 
-  group_by(strain_name) %>% 
-  dplyr::summarise(mean_strain = mean(mean, na.rm = TRUE), sd_strain = sd(mean, na.rm = TRUE), .groups = "drop") %>% # This is the mean over the replicates for each strain
-  ungroup() %>%
-  dplyr::summarise(mean_all = mean(mean_strain, na.rm = TRUE), sd_all = sd(mean_strain, na.rm = TRUE), .groups = "drop") # This is the mean over the mean replicates for each strain
 
-#### Replicate variation
+#### Plot replicate variation
 ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x=ticker, y = mean)) + 
   geom_bar(stat = "identity", aes(fill = factor(ticker))) + 
   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd)) + 
@@ -466,7 +386,16 @@ g2 <- ggplot(perc, aes(x=thresh_diff, y = perct)) + geom_point() +
 g1 + g2 
 ggsave("plots/linear_fit/variation_over_reps.pdf")
 
-# Take the average by inoculum 
+
+###### RESULTS: OVERALL Take the average over all values: this is the overall log reduction 
+rwo %>% 
+  ungroup() %>% 
+  group_by(strain_name) %>% 
+  dplyr::summarise(mean_strain = mean(mean, na.rm = TRUE), sd_strain = sd(mean, na.rm = TRUE), .groups = "drop") %>% # This is the mean over the replicates for each strain
+  ungroup() %>%
+  dplyr::summarise(mean_all = mean(mean_strain, na.rm = TRUE), sd_all = sd(mean_strain, na.rm = TRUE), .groups = "drop") # This is the mean over the mean replicates for each strain
+
+###### RESULTS: INOCULUM Take the average by inoculum 
 av_inoc_all <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
   ungroup() %>% 
   pivot_longer(`10^3`:`10^5`) %>%
@@ -491,7 +420,7 @@ g1 <- ggplot(av_inoc, aes(x=lab, y = mean_inoc)) + geom_bar(stat="identity") +
   scale_y_continuous("Mean log reduction") + 
   theme(legend.position = "none")
 
-## Success? 
+###### RESULTS: SUCCESS
 succ <- read_csv("data/MACOTRA_100collection success_20210121.csv")
 succ$strain_name <- as.character(succ$strain)
 
@@ -518,7 +447,8 @@ ggplot(av_all_bys, aes(x=success, y = mean_succ)) + geom_bar(stat = "identity", 
 ggsave("plots/linear_fit/succ_unsucc_sd.pdf", width = 5, height = 5)
 
 
-## Take the average by inoculum and success
+###### RESULTS: INOCULUM AND SUCCESS
+# Take the average by inoculum and success
 av_inoc_succ <- succ_go %>% 
   filter(r2 > r2_threshold, meas == 1) %>%
   ungroup() %>% 
@@ -539,7 +469,7 @@ g2 <- ggplot(av_inoc_succ, aes(x=lab, y = mean_inoc,group = success)) + geom_bar
   theme(legend.position="bottom")
 
 
-### Lineage
+###### RESULTS: LINEAGE 
 av_inoc_succ_lin <- succ_go %>% 
   filter(r2 > r2_threshold, meas == 1) %>%
   ungroup() %>% 
@@ -561,7 +491,32 @@ g3 <- ggplot(av_inoc_succ_lin, aes(x=lab, y = mean_inoc,group = success)) + geom
   theme(legend.position="bottom")
 
 
-# individual data
+###### RESULTS: COUNTRY AND SUCCESS 
+av_inoc_succ_country <- succ_go %>% 
+  filter(r2 > r2_threshold, meas == 1) %>%
+  ungroup() %>% 
+  pivot_longer(`10^3`:`10^5`) %>%
+  group_by(strain_name, name, success, country) %>% 
+  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(name, success, country) %>% 
+  dplyr::summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
+
+av_inoc_succ_country$lab = as.numeric(substr(av_inoc_succ_country$name,4,4))
+
+g4 <- ggplot(av_inoc_succ_country, aes(x=lab, y = mean_inoc,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
+  facet_wrap(~country) + 
+  geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
+  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
+  scale_y_continuous("Mean log reduction") + 
+  scale_fill_discrete("") + 
+  theme(legend.position="bottom")
+
+(g1 + g2) / (g3 + g4) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
+  theme(legend.position='bottom')
+ggsave("plots/final/figure4.pdf", width = 15, height = 15)
+
+###### RESULTS: PLOT INDIVIDUAL DATA
 v_inoc_succ_lin <- succ_go %>% 
   filter(r2 > r2_threshold, meas == 1) %>%
   ungroup() %>% 
@@ -601,31 +556,6 @@ ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_poin
 ggsave("plots/final/underlying_all_data_country_lines.pdf", width = 10, height = 8)
 
 
-#### Country and success
-av_inoc_succ_country <- succ_go %>% 
-  filter(r2 > r2_threshold, meas == 1) %>%
-  ungroup() %>% 
-  pivot_longer(`10^3`:`10^5`) %>%
-  group_by(strain_name, name, success, country) %>% 
-  dplyr::summarise(mean_strain = mean(value, na.rm = TRUE), sd_strain = sd(value, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  group_by(name, success, country) %>% 
-  dplyr::summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
-
-av_inoc_succ_country$lab = as.numeric(substr(av_inoc_succ_country$name,4,4))
-
-g4 <- ggplot(av_inoc_succ_country, aes(x=lab, y = mean_inoc,group = success)) + geom_bar(stat = "identity",position = "dodge", aes(fill = success)) + 
-  facet_wrap(~country) + 
-  geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
-  scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
-  scale_y_continuous("Mean log reduction") + 
-  scale_fill_discrete("") + 
-  theme(legend.position="bottom")
-
-(g1 + g2) / (g3 + g4) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
-  theme(legend.position='bottom')
-ggsave("plots/final/figure1.pdf", width = 15, height = 15)
-
 av_inoc_succ_country_lin <- succ_go %>% 
   filter(r2 > r2_threshold, meas == 1) %>%
   ungroup() %>% 
@@ -657,9 +587,10 @@ av_inoc_country_lin <- succ_go %>%
   group_by(name, success, country, lineage) %>% 
   summarise(mean_inoc = mean(mean_strain, na.rm = TRUE), sd_inoc = sd(mean_strain, na.rm = TRUE)) %>% ungroup()
 
+#av_inoc_country_lin <- av_inoc_country_lin %>% mutate(lab = as.numeric(paste0(substr(name,4,4),ifelse(country == "France",".2",ifelse(country == "Netherlands",".5",".7"))))) # doesn't work
 av_inoc_country_lin$lab = as.numeric(substr(av_inoc_country_lin$name,4,4))
 
-g5 <- ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
+g5 <- ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc, group = interaction(country, lab, lineage))) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
   facet_wrap(~lineage) + 
   geom_errorbar(position=position_dodge(),aes(ymin = mean_inoc - sd_inoc, ymax = mean_inoc + sd_inoc)) + 
   scale_x_continuous("Inoculum", breaks = c(3,4,5), labels = function(x) parse(text=paste("10^",x))) + 
@@ -670,7 +601,7 @@ ggsave("plots/final/underlying_all_data_country_bar.pdf", width = 10, height = 8
 
 (g1 + g2) / (g3 + g5) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
   theme(legend.position='bottom')
-ggsave("plots/final/figure2.pdf", width = 15, height = 15)
+ggsave("plots/final/figure4_alternative.pdf", width = 15, height = 15)
 
 ggplot(av_inoc_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
   facet_wrap(lineage~success) + 
