@@ -241,7 +241,7 @@ ggplot(pp_strain_names, aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = fac
   ggtitle(paste0("All strains. Red = outside of limits (",100*cutoff,"%)"))
 ggsave(paste0("plots/exp_growth/cutoff_from_mean_exponential_growth.pdf"),width = 30, height = 30)
 
-
+theme_set(theme_bw(base_size=18))
 ggplot(pp_strain_names %>% filter(strain_name == "11288"), aes(x=inocl, y = cut_exp)) + geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 3) +
   scale_color_manual("In the limits?", values = c("black","red")) +
   scale_shape_discrete("Drytime") + 
@@ -253,9 +253,9 @@ ggplot(pp_strain_names %>% filter(strain_name == "11288"), aes(x=inocl, y = cut_
   geom_hline(aes(yintercept = mean_peak_exp_gr, col = factor(ifelse(total_rep_rem>0,1,0))),lty = "dashed") + 
   ggtitle(paste0("11288. Red = outside of limits (",100*cutoff,"%)")) + theme_bw(base_size = 20)
 ggsave(paste0("plots/exp_growth/eg_cutoff_from_mean_exponential_growth.pdf"))
+ggsave(paste0("plots/exp_growth/eg_cutoff_from_mean_exponential_growth.png"),width = 8, height = 6)
 
-
-
+theme_set(theme_bw(base_size=6))
 ggplot(pp_strain_names %>% filter(total_rep_rem>0), aes(x=inocl, y = cut_exp)) +
   geom_point(aes(colour = factor(outside),pch = factor(drytime)), size = 2) +
   scale_color_manual("In the limits?", values = c("black","red"), labels = c("yes", "no")) +

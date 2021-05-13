@@ -49,7 +49,7 @@ g1 <- ggplot(data_cs %>% filter(strain == "SA2704"), aes(x=Time, y = value_J, gr
   facet_wrap(~strain) + 
   scale_y_continuous("Heat flow (mW)") +
   scale_x_continuous("Time (h)", lim = c(0,25)) + 
-  labs(subtitle = "A") +
+  #labs(subtitle = "A") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
@@ -64,7 +64,7 @@ g2 <- ggplot(data_od %>% filter(strain == "SA2704"), aes(x=Time, y = ma_value, g
   facet_wrap(~strain) + 
   scale_y_continuous("OD600")+ 
   scale_x_continuous("Time (h)")+
-  labs(subtitle = "B") +
+  #labs(subtitle = "B") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
@@ -73,7 +73,7 @@ g3 <- ggplot(data_od %>% filter(strain == "SA2704"), aes(x=Time, y = differ, gro
   facet_wrap(~strain) + 
   scale_y_continuous("OD600")+ 
   scale_x_continuous("Time (h)")+
-  labs(subtitle = "D") +
+  #labs(subtitle = "D") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 ggsave("proof_of_principle/OD_data_difference.png")
@@ -84,10 +84,11 @@ g4 <- ggplot(data_cs %>% filter(strain == "SA2704"), aes(x=Time, y = csum, group
   facet_wrap(~strain) + 
   scale_y_continuous("Heat (mJ)") + 
   scale_x_continuous("Time (h)", lim = c(0,25)) + 
-  labs(subtitle = "C") +
+  #labs(subtitle = "C") +
   scale_color_discrete("Inoculum", labels = c(expression(paste(10^2)), expression(paste(10^3)), 
                                               expression(paste(10^4)), expression(paste(10^5)), expression(paste(10^6))))
 
 gb <- ((g1 + g4) / (g3 + g2)) + plot_layout(guides = 'collect') #+ plot_annotation(tag_levels = 'A') & theme(legend.position='bottom')
 (gb |  ga) + plot_layout(guides = 'collect') + plot_annotation(tag_levels = 'A') & theme(legend.position='bottom')
-ggsave("plots/figures/figure2.pdf",width = 16, height = 10)
+ggsave("proof_of_principle/figure2.pdf",width = 16, height = 10)
+ggsave("proof_of_principle/figure2.png",width = 16, height = 10)

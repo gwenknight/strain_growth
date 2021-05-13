@@ -110,6 +110,7 @@ fit_line_model <- function(reps, strains, param_here, var, var_name = "Variable 
         if(plot == 1){
           if(length(w3b) > 0 ){(g1|g2) / (g3|g4) / (g5|g6)
           }else{(g1|g2) /  (g5|g6)}
+          ggsave(paste0("plots/output_fit/",strains[j],"_",reps[i],"_pred",".png"), width = 18, height = 15)
           ggsave(paste0("plots/output_fit/",strains[j],"_",reps[i],"_pred",".pdf"), width = 18, height = 15)
         }
         

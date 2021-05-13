@@ -16,7 +16,7 @@ library(ggplot2)
 library(patchwork) # for combining plots
 library(RColorBrewer)
 library(here)
-theme_set(theme_bw(base_size=14)) # theme setting for plots: black and white (bw) and font size (24)
+theme_set(theme_bw(base_size=24)) # theme setting for plots: black and white (bw) and font size (24)
 
 setwd(here::here())
 
@@ -203,14 +203,16 @@ for(jj in 1:length(all_strains)){ # for each strain
                                   "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr",
                                   "Width Shoulder Double&ExpGr","All"),
                        values = cols, drop = FALSE) + 
-    scale_linetype_discrete("Inoc.") + 
+    scale_linetype_discrete("Inoculum size 10^x") + 
     geom_line(data =  ddm_orig_s, aes(group = inoc, col = odd_type_db, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+    labs(y = "Heat flow (mW)") +
     ggtitle(all_strains[jj])
 
   
-  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), width = 15) # if any to highlight it is shown here
+  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), height = 10, width = 15) # if any to highlight it is shown here
+  ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.png"), height = 10, width = 15) # if any to highlight it is shown here
 }
 
 
@@ -222,6 +224,7 @@ for(jj in 1:length(all_strains)){ # for each strain
 ######****************************######################################################################
 dir.create(file.path(here(), "plots/linear_fit/"),showWarnings = FALSE)
 dir.create(file.path(here(), "plots/output_fit/"),showWarnings = FALSE)
+theme_set(theme_bw(base_size=20))
 
 ### Need to remove those with only 2 datapoints at time 0: perfect line
 #how many? 
@@ -259,6 +262,7 @@ ggplot(param_expok, aes(x=timepeak,y = log10(scalar), group = strain_name, colou
   scale_y_continuous("Log(inoculum)") + scale_x_continuous("Time to max heat flow (h)") + 
   scale_color_discrete("Experiment", labels = c("Baseline","168hr drying")) 
 ggsave(paste0("plots/linear_fit/time_to_peak_all_as_linear_model.pdf"), width = 20, height = 20)
+ggsave(paste0("plots/linear_fit/time_to_peak_all_as_linear_model.png"), width = 15, height = 15)
 
 #### Fit linear model 
 # Remove 10^2 and 10^6: not for reduction analysis
@@ -293,6 +297,7 @@ ggplot(reductions_fit$fit, aes(x=R2)) + geom_histogram(binwidth = 0.02) +
   #geom_vline(xintercept = 0.9) + 
   geom_vline(xintercept = 0.75, lty = "dashed") 
 ggsave("plots/linear_fit/cutoff_for_r2.pdf", width = 10, height = 10) # only get this if set R_cut = 0 in above?
+ggsave("plots/linear_fit/cutoff_for_r2.png", width = 10, height = 10) # only get this if set R_cut = 0 in above?
 
 fitted_strains <- reductions_fit$fit %>% filter(R2 > r2_threshold) %>%
   dplyr::select(strain) %>% unlist() %>% as.character() %>% unique()# but not all the replicates for these strains
@@ -322,7 +327,7 @@ setdiff(unique(reductions_fit$fit$strain),fitted_strains)
 rw <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% pivot_longer(`10^2`:`10^6`) 
 rw$inocl <- as.numeric(substr(rw$name,4,4))
 
-
+theme_set(theme_bw(base_size=14))
 #### Plot replicate variation
 ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x=ticker, y = mean)) + 
   geom_bar(stat = "identity", aes(fill = factor(ticker))) + 
@@ -333,6 +338,7 @@ ggplot(reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1), aes(x
   scale_x_continuous("Replicate") + 
   scale_y_continuous("Mean log reduction")
 ggsave("plots/linear_fit/replicate_variation_all.pdf", width = 15, height = 15)
+ggsave("plots/linear_fit/replicate_variation_all.png", width = 15, height = 15)
 
 
 repv <- reductions_fit$reductions %>% filter(r2 > r2_threshold, meas == 1) %>% 
@@ -534,6 +540,7 @@ ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_poin
   scale_shape_discrete("") + 
   theme(legend.position="bottom")
 ggsave("plots/final/underlying_all_data.pdf", width = 10, height = 8)
+ggsave("plots/final/underlying_all_data.png", width = 10, height = 8)
 
 ggplot(v_inoc_succ_lin, aes(x=lab, y = mean_strain,group = success)) + geom_point(aes(pch = success, col = country),position = position_dodge(0.8), size = 3, alpha = 0.8) + 
   facet_wrap(~lineage) + 
@@ -603,6 +610,7 @@ ggsave("plots/final/underlying_all_data_country_bar.pdf", width = 10, height = 8
 (g1 + g2) / (g3 + g5) + plot_layout(guides = 'collect', widths = c(1,2)) + plot_annotation(tag_levels = 'A') &
   theme(legend.position='bottom')
 ggsave("plots/final/figure4_alternative.pdf", width = 15, height = 15)
+ggsave("plots/final/figure4_alternative.png", width = 15, height = 15)
 
 ggplot(av_inoc_succ_country_lin, aes(x=lab, y = mean_inoc,group = country)) + geom_bar(stat = "identity",position = "dodge", aes(fill = country)) + 
   facet_wrap(lineage~success) + 
@@ -618,7 +626,7 @@ mm <- v_inoc_succ_lin %>%
   rename(logred = mean_strain, inoc = name) %>% 
   filter(!is.na(logred)) %>%
   ungroup() %>%
-  mutate(success_bin = ifelse(success == "Epidemic",1,0)) %>% 
+  mutate(success_bin = ifelse(success == "Successful",1,0)) %>% 
   dplyr::select(strain_name, inoc, country, lineage, success, success_bin, logred)
 
 write.csv(mm, "output/mm_final_data.csv")
