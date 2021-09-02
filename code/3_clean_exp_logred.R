@@ -208,7 +208,8 @@ for(jj in 1:length(all_strains)){ # for each strain
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     geom_point(data = dd, aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
     labs(y = "Heat flow (mW)") +
-    ggtitle(all_strains[jj])
+    ggtitle(all_strains[jj]) + 
+    theme(legend.key.width=unit(2,"cm"))
 
   
   ggsave(paste0("plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), height = 10, width = 15) # if any to highlight it is shown here
