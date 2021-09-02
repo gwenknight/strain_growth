@@ -20,7 +20,6 @@ library(lme4)
 #Set home
 setwd(here::here())
 
-
 ##############################################################
 # MIXED LINEAR AND LOGISTIC MODELS
 
@@ -51,10 +50,10 @@ par(mar = c(4, 12, 2, 2))
 boxplot(logred ~ success + lineage, d, las = 2, horizontal = TRUE)
 
 # Predict logred 
-summary(lmer(logred ~ success + inoc + (1 | lineage) + (1|country), d))
+summary(lmer(logred ~ success + inoc + (1 | lineage) + (1|country), d)) 
 confint.merMod(lmer(logred ~ success + inoc + (1 | lineage) + (1|country), d), level = 0.95)
-# No signal
-summary(lmer(logred ~ success + inoc + (1 | lineage), d))
+# No signal for success, but effect of inoc
+# summary(lmer(logred ~ success + inoc + (1 | lineage), d))
 # No signal
 
 # # Predict success
@@ -62,8 +61,10 @@ summary(lmer(logred ~ success + inoc + (1 | lineage), d))
 # # No signal
 # 
 # # Lineage-dependent association?
-# summary(lmer(logred ~ success*lineage + inoc + (1 | country), d))
-# summary(glmer(success ~ logred*lineage + inoc + (1 | country), d, family = binomial))
+#summary(lmer(logred ~ success*lineage + inoc + (1 | country), d))
+#summary(glmer(success ~ logred*lineage + inoc + (1 | country), d, family = binomial))
+# No signal
+
 
 stop()
 
