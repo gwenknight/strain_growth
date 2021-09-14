@@ -17,6 +17,7 @@ library(tidyverse)
 library(RColorBrewer)
 library(here)
 library(zoo)
+library(patchwork)
 theme_set(theme_bw(base_size=12)) # theme setting for plots: black and white (bw) and font size (24)
 mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(14)
 
