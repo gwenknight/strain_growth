@@ -157,8 +157,11 @@ w2<-which(param$total_rep_rem > 0) # total reps to remove
 w <- union(w1,w2)
 param[w,"odd_type_db"] <- paste0(param[w,"odd_type_db"],"5")
 
+write_csv(param, "output/param_all_odd_labelled.csv") # save so can read in later 
+
 pp_strain_names$strain <- pp_strain_names$strain_name
 pp_strain_names$inoc <- pp_strain_names$inocl
+
 ddm<- left_join(ddm, pp_strain_names %>% dplyr::select("strain", "rep","drytime","inoc","remove_dataset_exp_iter","total_rep_rem"), 
                  by = c("strain", "rep","drytime","inoc"))
 w1<-which(ddm$remove_dataset_exp_iter == 1)
