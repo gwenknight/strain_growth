@@ -71,7 +71,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   
   # Are there multiple peaks? 
   # GIVES WHERE ALL PEAKS ARE (greater or equal to (m) 5 points around them)
-  peaks_index = find_peaks(unlist(ts[,value]), m = 5)
+  peaks_index = as.numeric(find_peaks(unlist(ts[,value]), m = 5))
   if(length(peaks_index) > 0){ # MAY BE NO PEAK
     if(length(peaks_index) > 1){
       # REMOVE - early ones
@@ -161,7 +161,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   ### Visualise where peaks are if needed
   # plot(unlist(ts[,Time]),unlist(ts[,value]), type = 'l', xlab = "Time", ylab = "value", xlim = c(0,25))
   # points(time_startline, value_startline, col = 'black', pch = 19)
-
+  
   for(i in -40:5){
     time_endline <- i #max(min(ts[,Time])+0.5, time_peaks[1] - 10) # 10 hrs from first peak or at least 30min in to recording data
     value_endline <- 0
@@ -205,7 +205,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   }
   
   if(odd_shoulder == 0){shoulder_point <- 0; shoulder_point_v <- 0 # no shoulder_point if no shoulder!
-  }else{ws <- which(round(ts[,Time],5) == round(shoulder_point,5)); shoulder_point_v <- ts[ws,value]}
+  }else{ws <- which(round(ts[,Time],5) == round(shoulder_point,5)); shoulder_point_v <- as.numeric(ts[ws,value])}
   
   #### If no shoulder but multiple peaks, want to grab time of first peak
   if(length(peaks_index)!=0){
@@ -231,16 +231,19 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
               e=diff(interval_peak), 
               f=unlist(ts[peaks_index,Time])[1])
   # Set indicator/output parameters to zero
-  fit1 <- 0
-  plot_p <- 0
+  fit1 <- 0; fit2 <- 0; fit3 <- 0;
+  plot_p <- NA; plot_p2 <- NA; plot_p3 <- NA;
   p <- 0
   # Try to fit two normal curves using non-linear least squares methods 
-  try(fit1 <- nls(y~(a/b)*exp(-(x-c)^2/(2*b^2))+(d/e)*exp(-(x-f)^2/(2*e^2)),start = startl), silent = TRUE)
+  try(fit1 <- nls(y~(a/b)*exp(-(x-c)^2/(2*b^2))+(d/e)*exp(-(x-f)^2/(2*e^2)),start = startl, algorithm="port"), silent = TRUE)
+  try(fit2 <- nls(y~peak1/(x*sig*sqrt(2*pi))*exp(-(log(x) - mu)^2/(2*sig^2)) + peak2/(x*sig2*sqrt(2*pi))*exp(-(log(x) - mu2)^2/(2*sig2^2)), 
+                  start = list(peak1 = 800, peak2 = 900, sig = 0.1, mu = 1.7, sig2 = 0.1, mu2 = 1.9)), silent = TRUE)
+  try(fit3 <- nls(y~(a/(2*b))*exp(-(x-c)^2/(2*b^2))+(a/(2*b))*exp(-(x-c/2)^2/(2*b^2)) +(d/e)*exp(-(x-f)^2/(2*e^2)),start = startl, algorithm="port"), silent = TRUE)
   
   # If manage to fit
   if(length(fit1) > 1){
     # print that can 
-    #print(paste("Double curve fit", name4output,sep = " "))
+    print(paste("Double curve fit Norm", name4output,sep = " "))
     odd_double <- 1
     # Save the predictions of the fit 
     pred_p <- predict(fit1)
@@ -249,16 +252,64 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     # Pull out the actual curves using the parameters in p
     g1p <- (p["a"]/p["b"])*exp(-(x-p["c"])^2/(2*p["b"]^2)) 
     g2p <- (p["d"]/p["e"])*exp(-(x-p["f"])^2/(2*p["e"]^2))
-    # Store the curves
-    plot_p <- as.data.frame(cbind(x,y,pred_p, g1p, g2p))
-    colnames(plot_p) <- c("time","value","fit","normal_curve1","normal_curve2")
-    # Store the parameters
-    plot_p$a <- p["a"]; plot_p$b <- p["b"]; plot_p$c <- p["c"]
-    plot_p$d <- p["d"]; plot_p$e <- p["e"]; plot_p$f <- p["f"]
+    if(all(g1p > 0) && all(g2p>0)){
+      # Store the curves
+      plot_p <- as.data.frame(cbind(x,y,pred_p, g1p, g2p,0))
+      colnames(plot_p) <- c("time","value","fit","curve1","curve2","curve3")
+      # Store the parameters
+      plot_p$a <- p["a"]; plot_p$b <- p["b"]; plot_p$c <- p["c"]
+      plot_p$d <- p["d"]; plot_p$e <- p["e"]; plot_p$f <- p["f"]
+    }
   }
   
   
- 
+  # If manage to fit
+  if(length(fit2) > 1){
+    # print that can 
+    print(paste("Double curve fit Lognorm", name4output,sep = " "))
+    odd_double <- 1
+    # Save the predictions of the fit 
+    pred_p <- predict(fit2)
+    # Save the coefficients of the fit
+    p <- coef(fit2)
+    # Pull out the actual curves using the parameters in p
+    sig = p["sig"]; mu = p["mu"]; peak1 <- p["peak1"]
+    sig2 <- p["sig2"]; mu2 <- p["mu2"]; peak2 <- p["peak2"]
+    g1p <- peak1/(x*sig*sqrt(2*pi))*exp(-(log(x) - mu)^2/(2*sig^2))
+    g2p <- peak2/(x*sig2*sqrt(2*pi))*exp(-(log(x) - mu2)^2/(2*sig2^2))
+    if(all(g1p > 0) && all(g2p>0)){
+      # Store the curves
+      plot_p2 <- as.data.frame(cbind(x,y,pred_p, g1p, g2p,0))
+      colnames(plot_p2) <- c("time","value","fit","curve1","curve2","curve3")
+      # Store the parameters
+      plot_p2$a <- p["sig"]; plot_p2$b <- p["mu"]; plot_p2$c <- p["peak1"]
+      plot_p2$d <- p["sig2"]; plot_p2$e <- p["mu2"]; plot_p2$f <- p["peak2"]
+    }
+  }
+  
+  # If manage to fit
+  if(length(fit3) > 1){
+    # print that can 
+    print(paste("Double curve fit Norm x3", name4output,sep = " "))
+    odd_double <- 1
+    # Save the predictions of the fit 
+    pred_p <- predict(fit3)
+    # Save the coefficients of the fit
+    p <- coef(fit3)
+    # Pull out the actual curves using the parameters in p
+    g1p <- (p["a"]/(2*p["b"]))*exp(-(x-p["c"])^2/(2*p["b"]^2)) 
+    g2p <- (p["a"]/(2*p["b"]))*exp(-(x-p["c"]/2)^2/(2*p["b"]^2)) 
+    g3p <- (p["d"]/p["e"])*exp(-(x-p["f"])^2/(2*p["e"]^2))
+    if(all(g1p > 0) && all(g2p>0) && all(g3p>0)){
+      # Store the curves
+      plot_p3 <- as.data.frame(cbind(x,y,pred_p, g1p, g2p, g3p))
+      colnames(plot_p3) <- c("time","value","fit","curve1","curve2","curve3")
+      # Store the parameters
+      plot_p3$a <- p["a"]; plot_p3$b <- p["b"]; plot_p3$c <- p["c"]
+      plot_p3$d <- p["d"]; plot_p3$e <- p["e"]; plot_p3$f <- p["f"]
+    }
+  }
+  
   ## Plot ts, cumulative and fit
   # if functions takes in a command to plot
   if(plot == 1){
@@ -270,7 +321,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
     gc_df <- as.data.frame(cbind(gc_fit$fit.time, gc_fit$fit.data))
     colnames(gc_df) <- c(Time,value)
     #gc_df[,value]<- c(gc_df[1,"csum"],diff(gc_df$csum)) # CHANGE TO CUMULATIVE? 
-    gc_dfm <- reshape2::melt(gc_df, id.vars = Time)
+    #gc_dfm <- reshape2::melt(gc_df, id.vars = Time)
     ## add fit to data plot
     gg <- gg + geom_line(data = gc_df, aes(x=Time,y=value), col= "red")
     
@@ -281,7 +332,7 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   ## Build vectors of required parameters to output
   param_o   <- c(time_max_heat_flow, value_max_heat_flow, 
                  s$mu.spline, s$lambda.spline,s$integral.spline, 
-                 odd_peak, odd_width, max_level, odd_shoulder, odd_double, shoulder_point, shoulder_point_v)
+                 odd_peak, odd_width, max_level, odd_shoulder, odd_double, shoulder_point, as.numeric(shoulder_point_v))
   
   #print(param_o)  
   
@@ -393,8 +444,9 @@ cut_extract <- function(ts, Time, value, name4output, thresh_wide = 90, plot = 0
   
   
   ## Build vectors of required parameters to output
-  param_o   <- c(param_o, s$mu.spline, timepeak, valpeak)
+  param_o   <- c(param_o, as.numeric(s$mu.spline), as.numeric(timepeak), as.numeric(valpeak))
   
-  return(list(param = param_o))
+  return(list(param = param_o, double_param = plot_p, double_param_logn = plot_p2, double_param_norm3 = plot_p3))
   
 }
+
