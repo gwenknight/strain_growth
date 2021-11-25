@@ -1,9 +1,9 @@
 # EXPLORE BEHAVIOUR FOR ONE STRAIN 
 # DATASET
-strain <- "11214" 
-replicate <- 11.2 
+strain <- "11277" 
+replicate <- 1.2 
 condition <- 0
-inocl <- 3
+inocl <- 5
 
 
 #11050             6.2t168-inoc4/3
@@ -354,6 +354,131 @@ if(length(time_peaks_diff) > 1 & odd_shoulder == 0){ # if multiple peaks but no 
   }
 }
 
+#### Past peak shoulder
+time_endline <- 40 #max(min(data1$Time)+0.5, time_peaks[1] - 10) # 10 hrs from first peak or at least 30min in to recording data
+value_endline <- 0
+#where.end <- which.min(abs(data1$Time - time_endline)) # What time exactly is this? 
+#value_endline <- data1[where.end, "value_J"] # Find value at this time point
+## Start of line is where? (top point)
+time_startline <- time_peaks[1] # highest peak
+value_startline <- as.numeric(data1[peaks_index[1],"value_J"])
+
+# Draw straight line, assuming peak time = time 0. 
+grad = as.numeric((value_endline - value_startline)/(time_endline - time_startline)) # Gradient of line
+times_line <- as.numeric(unlist(data1[peaks_index[1]:1,"Time"])) # The times for the line (x values)
+
+# Predicted straight line
+pred_points_fit <- grad*(times_line - time_startline) + value_startline # remove times_startline as taking this to be time zero (so can use value_startline as y intercept)
+
+### Visualise where peaks are if needed
+plot(data1$Time,data1$value_J, type = 'l', xlab = "Time", ylab = "Value_J", xlim = c(0, 40))
+points(unlist(data1[peaks_index,"Time"]), unlist(data1[peaks_index,"value_J"]), col = 'black', pch = 19)
+## and can plot line against this if needed too 
+lines(times_line, pred_points_fit, col= "blue")
+
+### Run through lines. 
+odd_shoulder<- 0
+shoulder_point <- time_peaks[1] # shoulder before this: this is the max peak 
+### Visualise where peaks are if needed
+
+plot(data1$Time,data1$value_J, type = 'l', xlab = "Time", ylab = "Value_J", xlim = c(0,25))
+points(data1$Time,data1$value_J)
+points(unlist(data1[peaks_index,"Time"]), unlist(data1[peaks_index,"value_J"]), col = 'black', pch = 19)
+
+for(i in 5:40){
+  print(i)
+  time_endline <- i #max(min(data1$Time)+0.5, time_peaks[1] - 10) # 10 hrs from first peak or at least 30min in to recording data
+  value_endline <- 0
+  #where.end <- which.min(abs(data1$Time - time_endline)) # What time exactly is this? 
+  #value_endline <- data1[where.end, "value_J"] # Find value at this time point
+  ## Start of line is where? (top point)
+  time_startline <- time_peaks[1] # highest peak
+  value_startline <- as.numeric(data1[peaks_index[1],"value_J"])
+  
+  # Draw straight line, assuming peak time = time 0. 
+  grad = as.numeric((value_endline - value_startline)/(time_endline - time_startline)) # Gradient of line
+  # Want to end of curve
+  exp_End <- which.max(abs(data1$Time))
+  times_line <- as.numeric(unlist(data1[peaks_index[1]:exp_End,"Time"])) # The times for the line (x values)
+  
+  # Predicted straight line
+  pred_points_fit <- grad*(times_line - time_startline) + value_startline # remove times_startline as taking this to be time zero (so can use value_startline as y intercept)
+  
+  
+  ## and can plot line against this if needed too 
+  lines(times_line, pred_points_fit, col= "blue")
+  
+  #### How far is the predicted straight line from the data? 
+  #if(length(pred_points_fit) > 28){leng = 28}else{leng = length(pred_points_fit)}
+  dist <- as.numeric(unlist(c(pred_points_fit - data1[peaks_index[1]:exp_End,"value_J"])))
+  
+  # if(sum(dist>0) > 0 && sum(dist<0)>0){ # need dist to cross multiple times
+  #   fpsq <- find_peaks(as.numeric(unlist(dist)), m = 5) # Are there more than 1 peaks? 
+  #   
+  #   if(length(fpsq)>1 ){ # if there are more than one peak
+  #     if(max(-dist[fpsq]) > 0.0001) # if the curve moves a long way above the straight line 
+  #       if(abs(sum(sign(dist[fpsq]))) != length(fpsq)){ # Want each peak to be on a different side of the line
+  #         if((shoulder_point-1) > max(times_line[fpsq])){ # if the crossing is more than an hour from peak
+  #           shoulder_point = min(shoulder_point-1,max(times_line[fpsq]))
+  #           print(c(i,fpsq,times_line[fpsq])); odd_shoulder <- 1
+  #         }}}} # if yes = shoulder, otherwise just a smooth curve 
+  
+  # Crossing points
+  if(length(which(abs(diff(sign(dist)))==2)) > 2){# if cross more than twice then shoulder
+    if(max(-dist) > 0.001){ # far enough away to be a proper shoulder
+      if(max(dist) > 0.001){
+        #if(times_line[which.max(-dist)] < (time_peaks[1] - 2)){ # and not just another peak
+        fpsq <- find_peaks(as.numeric(unlist(abs(dist))), m = 3) # Are there more than 1 peaks?
+        if(length(fpsq) != 0){ # if no peaks then not a clear shoulder
+          ws <- which(times_line[fpsq] > time_peaks[1]+1) # want shoulder to be more than hour from peak 
+          if(length(ws) != 0 ){
+            shoulder_point1_past = min(times_line[fpsq][ws]) # And then the next closest one
+            ws <- which.min(abs(unlist(ts[,Time]) - shoulder_point1_past)) # #ws <- which(round(ts[,Time],5) == round(shoulder_point1_past,2)); 
+            shoulder_point_v1_past <- ts[ws,value]
+            height <- shoulder_point_v1_past / ts[peaks_index[1],value]
+            if(height > 0.25 && height < 0.96){ # if the shoulder is greater than a quarter way up but not too close
+              shoulder_point_past = shoulder_point1_past; shoulder_point_v_past = shoulder_point_v1_past# Update shoulder values to ones that are > half way
+              odd_shoulder_past <- 1; #print(c("new",i)) # Then odd shoulder  
+            }
+          }
+        }
+      }
+    }
+  }
+  # ## Crossing points
+  # #if(sum(diff(sign(dist)) != 0) > 2){ # if cross more than twice then shoulder
+  # if(length(which(abs(diff(sign(dist)))==2)) > 2){
+  #   if(max(-dist) > 0.001){ # far enough away to be a proper shoulder
+  #     if(max(dist) > 0.001){ # far enough away on both sides
+  #       #if(times_line[which.max(-dist)] < (time_peaks[1] - 2)){ # and not just another peak
+  #       shoulder_values = c(max(dist[which(dist>0)]), max(dist[which(dist<0)]))
+  #       ws <- c() ####FINISH HERE
+  #       for(i in 1:length(shoulder_values)){
+  #         ws <- which(round(data1$Time,5) == round(shoulder_values[1],5)); 
+  #         
+  #         fpsq <- find_peaks(as.numeric(unlist(dist)), m = 3) # Are there more than 1 peaks?
+  #         shoulder_point1 = min(time_peaks[1]-1,max(times_line[fpsq]))
+  #         ws <- which(round(data1$Time,5) == round(shoulder_point1,5)); 
+  #         shoulder_point_v1 <- data1[ws,"value_J"]
+  #         if((shoulder_point_v1 / data1[peaks_index[1],"value_J"]) > 0.25){ # if the shoulder is greater than half way up
+  #           if((shoulder_point_v1 / data1[peaks_index[1],"value_J"]) < 0.96){ # if the shoulder is not too near peak
+  #             shoulder_point = shoulder_point1 
+  #             shoulder_point_v = shoulder_point_v1
+  #             print(shoulder_point_v / data1[peaks_index,"value_J"])
+  #             odd_shoulder <- 1; print(c("new",i)) # Then odd shoulder     
+  #           }
+  #         }
+  #       }
+  #       #}
+  #     }
+  #  }
+  
+  
+}
+odd_shoulder
+
+ws <- which(data1$Time == shoulder_point)
+data1$Time[ws]
 
 ###### 
 
@@ -463,3 +588,4 @@ if(length(w) > 0){ # if this replicate exists for this strain (i.e. there is dat
     geom_point(data = data1[which(round(data1$Time,2) == as.numeric(round(timepeak,2))),c("Time","value_J")],col="red") + 
     ggtitle(paste0(strain,"_", replicate,"_", inocl,"_",condition))
 }
+

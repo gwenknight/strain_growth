@@ -169,7 +169,9 @@ w2<-which(ddm$total_rep_rem > 0)
 w <- union(w1,w2)
 ddm[w,"odd_type_db"] <- paste0(ddm[w,"odd_type_db"],"5")
 
-cols = c(1,brewer.pal(n = 11, name = "Set3"))
+write.csv(ddm, "output/ddm_all_odd_labelled.csv")
+
+cols = c(1,brewer.pal(n = 11, name = "Set3"),"#EDF8E9")
 dir.create(file.path(here(), "plots/final_data_split_highlighted/"),showWarnings = FALSE)
 
 for(jj in 1:length(all_strains)){ # for each strain
@@ -197,13 +199,13 @@ for(jj in 1:length(all_strains)){ # for each strain
     facet_wrap(drytime~rep, nrow = length(unique(dd$drytime))) + 
     scale_color_manual("Odd_type", 
                        breaks = c("0","14","24","34","124","134","05",
-                                  "145","245",
-                                  "234","1234","345",
+                                  "145","245","1245",
+                                  "234","1234","345","1345",
                                   "2345", "12345"),
                        labels = c("None","Peak&Double",
                                   "Width&Double","Shoulder&Double","Peak Width&Double","Peak Shoulder&Double","ExpGr",
-                                  "Peak Shoulder&ExpGr","Width Shoulder&ExpGr",
-                                  "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr",
+                                  "Peak Shoulder&ExpGr","Width Shoulder&ExpGr","Peak Width Shoulder&ExpGr",
+                                  "Width Shoulder&Double", "Peak Width Shoulder&Double", "Shoulder Double&ExpGr","Peak Shoulder Double&ExpGr",
                                   "Width Shoulder Double&ExpGr","All"),
                        values = cols, drop = FALSE) + 
     scale_linetype_discrete("Inoculum size 10^x") + 
