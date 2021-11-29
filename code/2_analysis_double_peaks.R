@@ -159,10 +159,10 @@ param[which(param$odd_shoulder_past > 0),"odd_type"] <- paste0(param[which(param
 
 # Minor peaks
 param <- param %>% mutate(odd_minor_peak = ifelse(mp_t2 !=0, 1, 0))
-param[which(param$odd_minor_peak > 0),"odd_type"] <- paste0(param[which(param$odd_minor_peak > 0),"odd_type"],"5")
+#param[which(param$odd_minor_peak > 0),"odd_type"] <- paste0(param[which(param$odd_minor_peak > 0),"odd_type"],"5")
 
 ## Any odd? 
-param$any_odd <- as.numeric(param$odd_peaks) + as.numeric(param$odd_width) + as.numeric(param$odd_shoulder) + as.numeric(param$odd_shoulder_past) + as.numeric(param$odd_minor_peak)
+param$any_odd <- as.numeric(param$odd_peaks) + as.numeric(param$odd_width) + as.numeric(param$odd_shoulder) + as.numeric(param$odd_shoulder_past) #+ as.numeric(param$odd_minor_peak)
 
 
 param_mp <- param %>% filter(!strain_name %in% c("Newman","RWW12","SA3297","SA2704","RWW146","SAC042W", "Mu50", "M116")) %>% 
@@ -235,7 +235,7 @@ ddm$shoulder_point_v <- 0
 ddm$shoulder_cut <- 0
 ddm$shoulder_point_past_t <- 0 
 ddm$shoulder_point_past_v <- 0
-ddm[,c("mp_t1","mp_h1","mp_t2","mp_h2","mp_t3","mp_h3","mp_t4","mp_h4")] <- 0
+ddm[,c("t_m_h_flow","v_m_h_flow","mp_t1","mp_h1","mp_t2","mp_h2","mp_t3","mp_h3","mp_t4","mp_h4")] <- 0
 
 #### store odd type in main time series dataframe
 for(jj in 1:length(u)){ # for each strain
@@ -280,6 +280,10 @@ for(jj in 1:length(u)){ # for each strain
       if(pp[ww,"any_odd"] > 0){
         ddm[oddv,c("shoulder_cut")] <- 1 
       }
+      
+      ## Add in peak
+      ddm[oddv,c("t_m_h_flow","v_m_h_flow")] <- pp[ww,c("t_m_h_flow","v_m_h_flow")]
+      
       
       ## Add in past shoulder point
       if(pp[ww,"shoulder_point_past_t"]>0 && !is.na(pp[ww,"shoulder_point_past_t"])){

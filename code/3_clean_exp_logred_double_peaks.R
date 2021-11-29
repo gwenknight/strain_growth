@@ -122,10 +122,43 @@ for(jj in 1:length(all_strains)){ # for each strain
     theme(legend.key.width=unit(2,"cm"))
 
   
-  ggsave(paste0("data_paper2/plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), height = 10, width = 15) # if any to highlight it is shown here
+  #ggsave(paste0("data_paper2/plots/final_data_split_highlighted/",all_strains[jj],"_filtered.pdf"), height = 10, width = 15) # if any to highlight it is shown here
   ggsave(paste0("data_paper2/plots/final_data_split_highlighted/",all_strains[jj],"_filtered.png"), height = 10, width = 15) # if any to highlight it is shown here
+  
+  ggplot(dd %>% filter(drytime == 0), aes(x=Time, y = value)) + 
+    geom_line(aes(group = inoc, col = odd_type, linetype = factor(inoc)), lwd = 2) + 
+    facet_wrap(inoc~rep, nrow = length(unique(dd$rep))) + 
+    scale_color_manual("Odd_type", 
+                       breaks = c("0", "0125", "045", "04", "02", "024", "025", 
+                                  "01245", "03", 
+                                  "0145", "035", "01235", 
+                                  "0135", "023", "015", "0235", "0245", 
+                                  "012345", "0345", "02345", "05", "034"),
+                       labels = c("None","peak_width_minorpeak","shoulderafter_minorpeak","shoulderafter","width","width_shoulderafter","width_minorpeak",
+                                  "peak_width_shouldafter_minorpeak","shoulderbefore",
+                                  "peak_shoulderafter_minorpeak","shoulderbefore_minorpeak","peak_width_shoulderbefore_minorpeak",
+                                  "peak_shoulderbefore_minorpeak","width_shoulderbefore","peak_minorpeak","width_shoulderbefore_minorpeak","width_shoulderafter_minorpeak",
+                                  "all","shoulderbefore_shoulderafter_minorpeak","all_but_peak","minorpeak","shoulderbefore_shoulderafter"),
+                       values = cols, drop = FALSE) + 
+    scale_linetype_discrete("Inoculum size 10^x") + 
+    geom_line(data =  ddm_orig_s %>% filter(drytime == 0), aes(group = inoc, col = odd_type, linetype = factor(inoc)), alpha = 0.2, lwd = 2) + 
+    geom_point(data = dd %>% filter(drytime == 0, shoulder_point_t > 0), aes(x=shoulder_point_t, y = shoulder_point_v), col = "red") + 
+    geom_point(data = dd %>% filter(drytime == 0, shoulder_point_past_t > 0), aes(x=shoulder_point_past_t, y = shoulder_point_past_v), col = "blue") + 
+    geom_point(data = dd %>% filter(drytime == 0, mp_t1 > 0), aes(x=mp_t1, y = mp_h1), col = "green") +
+    geom_point(data = dd %>% filter(drytime == 0, mp_t2 > 0), aes(x=mp_t2, y = mp_h2), col = "green") +
+    geom_point(data = dd %>% filter(drytime == 0, mp_t3 > 0), aes(x=mp_t3, y = mp_h3), col = "green") +
+    geom_point(data = dd %>% filter(drytime == 0, mp_t4 > 0), aes(x=mp_t4, y = mp_h4), col = "green") +
+    geom_point(data = dd %>% filter(drytime == 0), aes(x=t_m_h_flow, y = v_m_h_flow), shape = 8, col = "red") + 
+    labs(y = "Heat flow (mW)") +
+    ggtitle(paste(all_strains[jj], "pre-drying","")) + 
+    theme(legend.key.width=unit(2,"cm"))
+  
+  ggsave(paste0("data_paper2/plots/final_data_split_highlighted/",all_strains[jj],"_filtered_sep.png"), height = 10, width = 15) # if any to highlight it is shown here
+  
+
 }
 
 
+#### Which are normal strains? 
 
 
