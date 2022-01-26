@@ -1,5 +1,5 @@
 # strain_growth
-Supporting code for Baede et al. (2021)
+Supporting code for "Dehydration tolerance in epidemic versus nonepidemic MRSA demonstrated by isothermal microcalorimetry", authored by: Valérie O. Baede a, Mehri Tavakol a, Margreet C. Vos a, Gwenan M. Knight b+, Willem J.B. van Wamel a+# on behalf of the MACOTRA study group. 
 
 ## Aim of code 
 To extract key parameters from time series of bacterial growth 
